@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Workshop PLC - Inventory & Monthly Stock Report System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; color: black; }
+            .shadow-sm, .shadow-md, .shadow-lg, .shadow-2xl { box-shadow: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-50 border-b border-slate-800 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="bg-indigo-600 p-2.5 rounded-xl text-white shadow-md">
+                    <i class="fa-solid fa-boxes-stacked text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-xl tracking-tight text-white">The Workshop PLC</h1>
+                    <p class="text-xs text-indigo-300 font-medium tracking-wide">Monthly Stock, Order & Wastage Management System</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="resetToBaseline()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 transition flex items-center shadow-sm">
+                    <i class="fa-solid fa-rotate-right mr-1.5"></i> Reset Baseline Data
+                </button>
+                <button onclick="openOrderModal()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg font-semibold transition flex items-center shadow-sm">
+                    <i class="fa-solid fa-cart-plus mr-1.5"></i> + Log New Order
+                </button>
+                <button onclick="openTransactionModal('Received')" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg font-semibold transition flex items-center shadow-sm">
+                    <i class="fa-solid fa-truck-ramp-box mr-1.5"></i> + Record GRN
+                </button>
+            </div>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <div class="bg-slate-800 px-4 sm:px-6 lg:px-8 border-t border-slate-700">
+            <div class="max-w-7xl mx-auto flex space-x-1 sm:space-x-8 overflow-x-auto">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="tab-btn px-4 py-3.5 text-sm font-semibold border-b-2 border-indigo-500 text-white whitespace-nowrap flex items-center transition">
+                    <i class="fa-solid fa-chart-pie mr-2 text-indigo-400"></i> Executive Dashboard
+                </button>
+                <button onclick="switchTab('monthly-report')" id="nav-monthly-report" class="tab-btn px-4 py-3.5 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white whitespace-nowrap flex items-center transition">
+                    <i class="fa-solid fa-calendar-check mr-2 text-amber-400"></i> Monthly Reports & Orders
+                </button>
+                <button onclick="switchTab('inventory')" id="nav-inventory" class="tab-btn px-4 py-3.5 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white whitespace-nowrap flex items-center transition">
+                    <i class="fa-solid fa-warehouse mr-2 text-emerald-400"></i> Stock Balance Ledger
+                </button>
+                <button onclick="switchTab('transactions')" id="nav-transactions" class="tab-btn px-4 py-3.5 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white whitespace-nowrap flex items-center transition">
+                    <i class="fa-solid fa-clock-rotate-left mr-2 text-blue-400"></i> Activity & GRN Log
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        <!-- DASHBOARD TAB -->
+        <section id="panel-dashboard" class="tab-panel active space-y-8">
+            <!-- Top Metric Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Inventory Items</p>
+                    <h3 id="stat-total-items" class="text-3xl font-extrabold text-slate-900 mt-2">0</h3>
+                    <p class="text-xs text-indigo-600 mt-2 font-medium"><i class="fa-solid fa-cubes mr-1"></i> Tracked materials</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Current Stock Balance</p>
+                    <h3 id="stat-current-stock" class="text-3xl font-extrabold text-slate-900 mt-2">0</h3>
+                    <p class="text-xs text-slate-500 mt-2 font-medium"><i class="fa-solid fa-scale-balanced mr-1"></i> Live sqm / Liters balance</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Received (GRN)</p>
+                    <h3 id="stat-total-received" class="text-3xl font-extrabold text-emerald-600 mt-2">0</h3>
+                    <p class="text-xs text-emerald-600 mt-2 font-medium"><i class="fa-solid fa-arrow-trend-up mr-1"></i> Stock additions</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Issued (Orders)</p>
+                    <h3 id="stat-total-issued" class="text-3xl font-extrabold text-blue-600 mt-2">0</h3>
+                    <p class="text-xs text-blue-600 mt-2 font-medium"><i class="fa-solid fa-arrow-trend-down mr-1"></i> Order consumption</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Low Stock Red Flags</p>
+                    <h3 id="stat-low-flags" class="text-3xl font-extrabold text-rose-600 mt-2">0</h3>
+                    <p class="text-xs text-rose-600 mt-2 font-medium"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Urgent reorder alerts</p>
+                </div>
+            </div>
+
+            <!-- Dynamic Low Stock Red Flag Banner -->
+            <div id="dashboard-alert-banner" class="hidden bg-rose-50 border-l-4 border-rose-500 p-5 rounded-r-2xl shadow-sm flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="bg-rose-100 p-3 rounded-xl text-rose-600 text-xl">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-rose-900 text-base">Critical Stock Warning Detected!</h4>
+                        <p id="dashboard-alert-text" class="text-sm text-rose-700 mt-0.5">One or more workshop items have breached their safety threshold.</p>
+                    </div>
+                </div>
+                <button onclick="switchTab('inventory')" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow-sm">Review Stock Ledger</button>
+            </div>
+
+            <!-- Main Dashboard Content Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Stock Summary Snapshot Table -->
+                <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                    <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-base flex items-center">
+                                <i class="fa-solid fa-warehouse mr-2 text-indigo-600"></i> Workshop Stock Snapshot
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Beginning + Received - Issued - Wastage = Ending Balance</p>
+                        </div>
+                        <button onclick="switchTab('inventory')" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold">View Full Ledger &rarr;</button>
+                    </div>
+                    <div class="overflow-x-auto flex-grow">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                <tr>
+                                    <th class="px-6 py-3.5 text-left">Material Name</th>
+                                    <th class="px-6 py-3.5 text-center">Unit</th>
+                                    <th class="px-6 py-3.5 text-right">Beginning</th>
+                                    <th class="px-6 py-3.5 text-right">Current Bal</th>
+                                    <th class="px-6 py-3.5 text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboard-summary-tbody" class="divide-y divide-slate-100 text-sm text-slate-700">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Quick Actions & Feed -->
+                <div class="space-y-6">
+                    <div class="bg-indigo-900 text-white rounded-2xl p-6 shadow-lg relative overflow-hidden">
+                        <div class="absolute -right-6 -bottom-6 opacity-10 text-9xl">
+                            <i class="fa-solid fa-print"></i>
+                        </div>
+                        <h3 class="text-lg font-bold">Quick Actions</h3>
+                        <p class="text-xs text-indigo-200 mt-1 mb-5">Instantly log new orders or stock receipts.</p>
+                        <div class="space-y-3 relative z-10">
+                            <button onclick="openOrderModal()" class="w-full bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition shadow flex items-center justify-center">
+                                <i class="fa-solid fa-cart-plus mr-2"></i> Log New Production Order
+                            </button>
+                            <button onclick="openTransactionModal('Received')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition shadow flex items-center justify-center">
+                                <i class="fa-solid fa-truck-ramp-box mr-2"></i> Record Goods Receipt (GRN)
+                            </button>
+                            <button onclick="switchTab('monthly-report')" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 px-4 rounded-xl text-sm transition border border-slate-700 flex items-center justify-center">
+                                <i class="fa-solid fa-file-invoice mr-2 text-amber-400"></i> Generate Monthly Report
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="font-bold text-slate-900 text-base mb-4 flex items-center">
+                            <i class="fa-solid fa-clock-rotate-left mr-2 text-indigo-600"></i> Recent Activity Log
+                        </h3>
+                        <div id="dashboard-recent-activity" class="space-y-3 max-h-[260px] overflow-y-auto pr-1">
+                            <!-- Dynamic items -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MONTHLY REPORT & ORDER TRACKER TAB -->
+        <section id="panel-monthly-report" class="tab-panel space-y-6">
+            <!-- Controls & Month Filter Header -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900 flex items-center">
+                        <i class="fa-solid fa-calendar-days mr-3 text-indigo-600"></i> Monthly Stock & Order Report
+                    </h2>
+                    <p class="text-sm text-slate-500">Trace orders, consumption, and calculate monthly stock balances with accuracy.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Reporting Period</label>
+                        <select id="monthly-period-select" onchange="renderMonthlyReportView()" class="px-4 py-2 text-sm border border-slate-300 rounded-xl font-bold bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="2026-09">August - September 2026 (Nehasie / Pagumie)</option>
+                            <option value="2026-10">September - October 2026 (Tikimt)</option>
+                            <option value="2026-11">October - November 2026 (Hidar)</option>
+                            <option value="ALL">All Reporting History</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end space-x-2 pt-4 md:pt-0">
+                        <button onclick="openOrderModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center">
+                            <i class="fa-solid fa-plus mr-1.5"></i> + Add Order
+                        </button>
+                        <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center">
+                            <i class="fa-solid fa-print mr-1.5"></i> Print Report
+                        </button>
+                        <button onclick="exportMonthlyReportCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center">
+                            <i class="fa-solid fa-file-csv mr-1.5"></i> Export CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Report Summary Header Banner -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Monthly Orders Logged</p>
+                    <h3 id="monthly-stat-orders" class="text-3xl font-extrabold text-slate-900 mt-1">0</h3>
+                    <p class="text-xs text-indigo-600 font-medium mt-1"><i class="fa-solid fa-check-double mr-1"></i> Active job orders</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Monthly Material Issued</p>
+                    <h3 id="monthly-stat-issued" class="text-3xl font-extrabold text-blue-600 mt-1">0</h3>
+                    <p class="text-xs text-blue-600 font-medium mt-1"><i class="fa-solid fa-file-invoice mr-1"></i> Net production sqm/L</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Monthly Wastage</p>
+                    <h3 id="monthly-stat-wastage" class="text-3xl font-extrabold text-amber-600 mt-1">0</h3>
+                    <p id="monthly-stat-wastage-pct" class="text-xs text-amber-600 font-medium mt-1"><i class="fa-solid fa-trash-arrow-up mr-1"></i> 0% of total issued</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Monthly Received (GRN)</p>
+                    <h3 id="monthly-stat-received" class="text-3xl font-extrabold text-emerald-600 mt-1">0</h3>
+                    <p class="text-xs text-emerald-600 font-medium mt-1"><i class="fa-solid fa-truck-ramp-box mr-1"></i> Replenished stock</p>
+                </div>
+            </div>
+
+            <!-- Monthly Stock Report Table (Matching The Workshop PLC Format) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-base flex items-center">
+                            <i class="fa-solid fa-table-list mr-2 text-indigo-400"></i> Workshop Monthly Material Reconciliation Table
+                        </h3>
+                        <p class="text-xs text-slate-300">Beginning Stock + Received - Issued - Wastage = Balance</p>
+                    </div>
+                    <span id="monthly-period-label" class="text-xs bg-indigo-600 px-3 py-1 rounded-full font-bold">August - September 2026</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-left">
+                        <thead class="bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            <tr>
+                                <th class="px-6 py-4">Item Specification</th>
+                                <th class="px-6 py-4 text-center">Unit</th>
+                                <th class="px-6 py-4 text-right">Beginning Stock</th>
+                                <th class="px-6 py-4 text-right text-emerald-600">+ Received (GRN)</th>
+                                <th class="px-6 py-4 text-right text-blue-600">- Issued (Orders)</th>
+                                <th class="px-6 py-4 text-right text-amber-600">- Wastage</th>
+                                <th class="px-6 py-4 text-right font-extrabold text-slate-900">= Ending Balance</th>
+                                <th class="px-6 py-4 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthly-stock-tbody" class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
+                            <!-- Dynamic Monthly Reconciliation Table Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Monthly Orders Log Table -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base flex items-center">
+                            <i class="fa-solid fa-list-check mr-2 text-indigo-600"></i> Logged Orders for Selected Month
+                        </h3>
+                        <p class="text-xs text-slate-500">Detailed job tracking with material consumption and trim wastage.</p>
+                    </div>
+                    <button onclick="openOrderModal()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-lg border border-indigo-200 transition">
+                        <i class="fa-solid fa-plus mr-1"></i> Add Order
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-left">
+                        <thead class="bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            <tr>
+                                <th class="px-6 py-3.5">Date</th>
+                                <th class="px-6 py-3.5">Job / Voucher #</th>
+                                <th class="px-6 py-3.5">Client Name</th>
+                                <th class="px-6 py-3.5">Material Used</th>
+                                <th class="px-6 py-3.5 text-right text-blue-600">Issued Qty</th>
+                                <th class="px-6 py-3.5 text-right text-amber-600">Wastage Qty</th>
+                                <th class="px-6 py-3.5">Machine</th>
+                                <th class="px-6 py-3.5 text-center">Status</th>
+                                <th class="px-6 py-3.5 text-center no-print">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthly-orders-tbody" class="divide-y divide-slate-100 text-sm text-slate-700 font-medium">
+                            <!-- Dynamic Orders Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- INVENTORY STOCK LEDGER TAB -->
+        <section id="panel-inventory" class="tab-panel space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Comprehensive Master Stock Ledger</h2>
+                    <p class="text-sm text-slate-500">Live inventory records matching The Workshop PLC material tracking sheets.</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="openNewMaterialModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition flex items-center">
+                        <i class="fa-solid fa-plus mr-2"></i> Add New Material
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row gap-3 justify-between items-center">
+                    <div class="relative w-full sm:w-80">
+                        <i class="fa-solid fa-search absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                        <input type="text" id="inventory-search" oninput="renderInventoryLedger()" placeholder="Search banners, stickers, inks..." class="w-full pl-10 pr-4 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                    </div>
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <label class="text-xs font-semibold text-slate-500">Filter Category:</label>
+                        <select id="inventory-category-filter" onchange="renderInventoryLedger()" class="text-sm border border-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                            <option value="ALL">All Categories</option>
+                            <option value="Banner">Banners</option>
+                            <option value="Sticker">Stickers</option>
+                            <option value="Ink">Inks</option>
+                            <option value="Other">Other Materials</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-left">
+                        <thead class="bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            <tr>
+                                <th class="px-6 py-4">Item Name / Specification</th>
+                                <th class="px-6 py-4">Category</th>
+                                <th class="px-6 py-4 text-center">Unit</th>
+                                <th class="px-6 py-4 text-right">Beginning</th>
+                                <th class="px-6 py-4 text-right text-emerald-600">+ Received (GRN)</th>
+                                <th class="px-6 py-4 text-right text-blue-600">- Issued (Orders)</th>
+                                <th class="px-6 py-4 text-right text-amber-600">- Wastage</th>
+                                <th class="px-6 py-4 text-right font-extrabold text-slate-900">= Current Bal</th>
+                                <th class="px-6 py-4 text-center">Stock Warning Status</th>
+                                <th class="px-6 py-4 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-tbody" class="divide-y divide-slate-100 text-sm text-slate-700 font-medium">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TRANSACTIONS & AUDIT TAB -->
+        <section id="panel-transactions" class="tab-panel space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Activity, GRN & Audit Trail</h2>
+                    <p class="text-sm text-slate-500">Complete log of all incoming stock (GRN) and material adjustments.</p>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="openTransactionModal('Received')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition flex items-center">
+                        <i class="fa-solid fa-truck-ramp-box mr-2"></i> + Receive GRN
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
+                    <h3 class="font-bold text-slate-900 text-base">Recorded Transactions</h3>
+                    <span id="tx-count-badge" class="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-full">0 Records</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-left">
+                        <thead class="bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            <tr>
+                                <th class="px-6 py-4">Date / Time</th>
+                                <th class="px-6 py-4">Type</th>
+                                <th class="px-6 py-4">Material Item</th>
+                                <th class="px-6 py-4 text-right">Quantity</th>
+                                <th class="px-6 py-4">Reference / Supplier / Notes</th>
+                                <th class="px-6 py-4 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactions-tbody" class="divide-y divide-slate-100 text-sm text-slate-700">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: Log New Order -->
+    <div id="order-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div class="px-6 py-5 bg-slate-900 text-white flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center"><i class="fa-solid fa-cart-plus mr-2 text-indigo-400"></i> Log New Production Order</h3>
+                <button onclick="closeOrderModal()" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="order-form" onsubmit="handleOrderSubmit(event)" class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Order Date *</label>
+                        <input type="date" id="order-date" required class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Job / Voucher # *</label>
+                        <input type="text" id="order-voucher" required placeholder="e.g. V-1092" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Client / Project Name *</label>
+                    <input type="text" id="order-client" required placeholder="e.g. Commercial Bank of Ethiopia" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Material Used *</label>
+                    <select id="order-material-id" required class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium">
+                        <!-- Dynamic Material Dropdown -->
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Issued Qty (sqm/L) *</label>
+                        <input type="number" step="0.01" id="order-qty-issued" required placeholder="0.00" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Wastage / Trim (sqm) *</label>
+                        <input type="number" step="0.01" id="order-qty-wastage" required placeholder="0.00" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Machine / Printer</label>
+                        <select id="order-machine" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium">
+                            <option value="Challenger 3.2m">Challenger 3.2m</option>
+                            <option value="Flora 3.2m">Flora 3.2m</option>
+                            <option value="Roland 1.6m">Roland 1.6m</option>
+                            <option value="Manual Cutting / Other">Manual Cutting / Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Status</label>
+                        <select id="order-status" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium">
+                            <option value="Completed">Completed</option>
+                            <option value="Pending">In Production</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pt-4 flex justify-end space-x-3 border-t border-slate-100">
+                    <button type="button" onclick="closeOrderModal()" class="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition">Post Order & Deduct Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Record GRN / Transaction -->
+    <div id="tx-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div class="px-6 py-5 bg-slate-900 text-white flex justify-between items-center">
+                <h3 id="tx-modal-title" class="font-bold text-base flex items-center"><i class="fa-solid fa-truck-ramp-box mr-2 text-emerald-400"></i> Record Goods Received Note (GRN)</h3>
+                <button onclick="closeTransactionModal()" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="tx-form" onsubmit="handleTransactionSubmit(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Material Received *</label>
+                    <select id="tx-material-id" required class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium">
+                        <!-- Dynamic dropdown -->
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Quantity Received *</label>
+                        <input type="number" step="0.01" id="tx-qty" required placeholder="0.00" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Date Received *</label>
+                        <input type="date" id="tx-date" required class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">GRN # / Supplier Reference *</label>
+                    <input type="text" id="tx-reference" required placeholder="e.g. GRN-2026-088 (Apex Supplies)" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium">
+                </div>
+                <div class="pt-4 flex justify-end space-x-3 border-t border-slate-100">
+                    <button type="button" onclick="closeTransactionModal()" class="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition">Post GRN & Add Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Add New Material -->
+    <div id="material-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div class="px-6 py-5 bg-slate-900 text-white flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center"><i class="fa-solid fa-cube mr-2 text-indigo-400"></i> Add New Material Item</h3>
+                <button onclick="closeNewMaterialModal()" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="material-form" onsubmit="handleNewMaterialSubmit(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Material Name & Specification *</label>
+                    <input type="text" id="new-mat-name" required placeholder="e.g. Backlit Film 1.27m" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Category *</label>
+                        <select id="new-mat-cat" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium">
+                            <option value="Banner">Banner</option>
+                            <option value="Sticker">Sticker</option>
+                            <option value="Ink">Ink</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Unit *</label>
+                        <select id="new-mat-unit" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium">
+                            <option value="sqm">sqm (m²)</option>
+                            <option value="Liters">Liters (L)</option>
+                            <option value="Rolls">Rolls</option>
+                            <option value="Pieces">Pieces</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Beginning Stock *</label>
+                        <input type="number" step="0.01" id="new-mat-beginning" required placeholder="100.00" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Low Alert Threshold *</label>
+                        <input type="number" step="0.01" id="new-mat-min" required placeholder="20.00" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium">
+                    </div>
+                </div>
+                <div class="pt-4 flex justify-end space-x-3 border-t border-slate-100">
+                    <button type="button" onclick="closeNewMaterialModal()" class="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition">Save Material</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_MATERIALS = 'workshop_plc_materials_v3';
+        const STORAGE_TRANSACTIONS = 'workshop_plc_transactions_v3';
+        const STORAGE_ORDERS = 'workshop_plc_orders_v3';
+
+        // Baseline Dataset based on The Workshop PLC Monthly Stock Reports (Nehasie/Pagumie)
+        const defaultMaterials = [
+            { id: 'm1', name: 'White Back Banner 3.2', category: 'Banner', unit: 'sqm', beginning: 1113.06, minStock: 100 },
+            { id: 'm2', name: 'White Back Banner 2.1', category: 'Banner', unit: 'sqm', beginning: 157.60, minStock: 30 },
+            { id: 'm3', name: 'Grayback Banner 0.95', category: 'Banner', unit: 'sqm', beginning: 34.20, minStock: 15 },
+            { id: 'm4', name: 'Vinyl Glossy Sticker 1.07', category: 'Sticker', unit: 'sqm', beginning: 198.48, minStock: 20 },
+            { id: 'm5', name: 'Vinyl Glossy Sticker 1.52', category: 'Sticker', unit: 'sqm', beginning: 60.50, minStock: 20 },
+            { id: 'm6', name: 'Frosted Sticker 1.22', category: 'Sticker', unit: 'sqm', beginning: 141.77, minStock: 25 },
+            { id: 'm7', name: 'Mesh Sticker 1.27', category: 'Sticker', unit: 'sqm', beginning: 10.92, minStock: 5 },
+            { id: 'm8', name: 'Blackback Banner 3.2', category: 'Banner', unit: 'sqm', beginning: 13.44, minStock: 5 },
+            { id: 'm9', name: 'Light Box Material 1.52', category: 'Banner', unit: 'sqm', beginning: 3.65, minStock: 5 },
+            { id: 'm10', name: 'Crystal Ink Cyan 1L', category: 'Ink', unit: 'Liters', beginning: 25.00, minStock: 8 },
+            { id: 'm11', name: 'Crystal Ink Magenta 1L', category: 'Ink', unit: 'Liters', beginning: 22.00, minStock: 8 }
+        ];
+
+        const defaultTransactions = [
+            { id: 'tx1', date: '2026-09-02', type: 'Received', materialId: 'm1', qty: 194.90, reference: 'GRN-2026-001 (Apex Imports)' },
+            { id: 'tx2', date: '2026-09-03', type: 'Received', materialId: 'm2', qty: 33.80, reference: 'GRN-2026-002 (Global Media)' },
+            { id: 'tx3', date: '2026-09-05', type: 'Received', materialId: 'm4', qty: 48.15, reference: 'GRN-2026-003 (Vinyl Distributors)' }
+        ];
+
+        const defaultOrders = [
+            { id: 'ord1', date: '2026-09-04', voucher: 'V-1001', client: 'Heineken Ethiopia', materialId: 'm1', qtyIssued: 194.90, qtyWastage: 22.12, machine: 'Challenger 3.2m', status: 'Completed', period: '2026-09' },
+            { id: 'ord2', date: '2026-09-06', voucher: 'V-1002', client: 'Coca-Cola East Africa', materialId: 'm2', qtyIssued: 33.80, qtyWastage: 6.31, machine: 'Flora 3.2m', status: 'Completed', period: '2026-09' },
+            { id: 'ord3', date: '2026-09-10', voucher: 'V-1003', client: 'Commercial Bank', materialId: 'm3', qtyIssued: 19.50, qtyWastage: 3.30, machine: 'Roland 1.6m', status: 'Completed', period: '2026-09' },
+            { id: 'ord4', date: '2026-09-12', voucher: 'V-1004', client: 'Safaricom Telecommunications', materialId: 'm4', qtyIssued: 198.76, qtyWastage: 34.06, machine: 'Flora 3.2m', status: 'Completed', period: '2026-09' },
+            { id: 'ord5', date: '2026-09-15', voucher: 'V-1005', client: 'Dashen Bank', materialId: 'm5', qtyIssued: 36.98, qtyWastage: 6.07, machine: 'Roland 1.6m', status: 'Completed', period: '2026-09' },
+            { id: 'ord6', date: '2026-09-18', voucher: 'V-1006', client: 'Ethio Telecom HQ', materialId: 'm6', qtyIssued: 49.07, qtyWastage: 18.68, machine: 'Roland 1.6m', status: 'Completed', period: '2026-09' },
+            { id: 'ord7', date: '2026-09-22', voucher: 'V-1007', client: 'Awash Bank Promo', materialId: 'm7', qtyIssued: 8.77, qtyWastage: 2.12, machine: 'Roland 1.6m', status: 'Completed', period: '2026-09' }
+        ];
+
+        let materials = [];
+        let transactions = [];
+        let orders = [];
+
+        function initApp() {
+            materials = localStorage.getItem(STORAGE_MATERIALS) ? JSON.parse(localStorage.getItem(STORAGE_MATERIALS)) : JSON.parse(JSON.stringify(defaultMaterials));
+            transactions = localStorage.getItem(STORAGE_TRANSACTIONS) ? JSON.parse(localStorage.getItem(STORAGE_TRANSACTIONS)) : JSON.parse(JSON.stringify(defaultTransactions));
+            orders = localStorage.getItem(STORAGE_ORDERS) ? JSON.parse(localStorage.getItem(STORAGE_ORDERS)) : JSON.parse(JSON.stringify(defaultOrders));
+
+            document.getElementById('order-date').valueAsDate = new Date();
+            document.getElementById('tx-date').valueAsDate = new Date();
+
+            renderAll();
+        }
+
+        function saveToStorage() {
+            localStorage.setItem(STORAGE_MATERIALS, JSON.stringify(materials));
+            localStorage.setItem(STORAGE_TRANSACTIONS, JSON.stringify(transactions));
+            localStorage.setItem(STORAGE_ORDERS, JSON.stringify(orders));
+            renderAll();
+        }
+
+        function resetToBaseline() {
+            if(confirm('Are you sure you want to reset all inventory and orders back to baseline sample data?')) {
+                localStorage.removeItem(STORAGE_MATERIALS);
+                localStorage.removeItem(STORAGE_TRANSACTIONS);
+                localStorage.removeItem(STORAGE_ORDERS);
+                initApp();
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('border-indigo-500', 'text-white');
+                el.classList.add('border-transparent', 'text-slate-400');
+            });
+
+            document.getElementById('panel-' + tabName).classList.add('active');
+            const btn = document.getElementById('nav-' + tabName);
+            btn.classList.add('border-indigo-500', 'text-white');
+            btn.classList.remove('border-transparent', 'text-slate-400');
+        }
+
+        // Calculation Engine
+        function getMaterialCalculations(materialId, targetPeriod = 'ALL') {
+            let received = 0;
+            let issued = 0;
+            let wastage = 0;
+
+            // Sum GRN transactions
+            transactions.forEach(tx => {
+                if(tx.materialId === materialId) {
+                    const txPeriod = tx.date.substring(0, 7);
+                    if(targetPeriod === 'ALL' || txPeriod === targetPeriod) {
+                        if(tx.type === 'Received') received += Number(tx.qty);
+                    }
+                }
+            });
+
+            // Sum Orders
+            orders.forEach(ord => {
+                if(ord.materialId === materialId) {
+                    const ordPeriod = ord.period || ord.date.substring(0, 7);
+                    if(targetPeriod === 'ALL' || ordPeriod === targetPeriod) {
+                        issued += Number(ord.qtyIssued);
+                        wastage += Number(ord.qtyWastage);
+                    }
+                }
+            });
+
+            const mat = materials.find(m => m.id === materialId);
+            const beginning = mat ? Number(mat.beginning) : 0;
+            const currentBal = (beginning + received) - (issued + wastage);
+
+            return { beginning, received, issued, wastage, currentBal };
+        }
+
+        function renderAll() {
+            renderDashboard();
+            renderMonthlyReportView();
+            renderInventoryLedger();
+            renderTransactions();
+            populateMaterialSelects();
+        }
+
+        function renderDashboard() {
+            let totalItems = materials.length;
+            let totalStockSum = 0;
+            let totalReceivedSum = 0;
+            let totalIssuedSum = 0;
+            let lowFlagsCount = 0;
+            let alertItems = [];
+            let summaryHtml = '';
+
+            materials.forEach(m => {
+                const calc = getMaterialCalculations(m.id);
+                totalStockSum += calc.currentBal;
+                totalReceivedSum += calc.received;
+                totalIssuedSum += calc.issued;
+
+                const isLow = calc.currentBal <= m.minStock;
+                if(isLow) {
+                    lowFlagsCount++;
+                    alertItems.push(m.name);
+                }
+
+                const statusBadge = isLow 
+                    ? `<span class="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Red Flag</span>`
+                    : `<span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center"><i class="fa-solid fa-check mr-1"></i> Normal</span>`;
+
+                summaryHtml += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-6 py-4 font-semibold text-slate-900">${m.name}</td>
+                        <td class="px-6 py-4 text-center text-slate-500 font-medium">${m.unit}</td>
+                        <td class="px-6 py-4 text-right font-medium text-slate-600">${calc.beginning.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-right font-extrabold text-slate-900">${calc.currentBal.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-center">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('stat-total-items').innerText = totalItems;
+            document.getElementById('stat-current-stock').innerText = totalStockSum.toFixed(1);
+            document.getElementById('stat-total-received').innerText = "+" + totalReceivedSum.toFixed(1);
+            document.getElementById('stat-total-issued').innerText = "-" + totalIssuedSum.toFixed(1);
+            document.getElementById('stat-low-flags').innerText = lowFlagsCount;
+            document.getElementById('dashboard-summary-tbody').innerHTML = summaryHtml;
+
+            const banner = document.getElementById('dashboard-alert-banner');
+            if(lowFlagsCount > 0) {
+                banner.classList.remove('hidden');
+                document.getElementById('dashboard-alert-text').innerText = `${lowFlagsCount} material(s) (${alertItems.join(', ')}) have dropped below safety thresholds. Immediate replenishment recommended.`;
+            } else {
+                banner.classList.add('hidden');
+            }
+
+            // Recent Feed
+            let actHtml = '';
+            orders.slice(-5).reverse().forEach(ord => {
+                const mat = materials.find(m => m.id === ord.materialId);
+                actHtml += `
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/70 flex items-center justify-between text-xs">
+                        <div>
+                            <span class="font-bold text-slate-900">${ord.client} (${ord.voucher})</span>
+                            <p class="text-slate-500 mt-0.5">${mat ? mat.name : ''} - ${ord.date}</p>
+                        </div>
+                        <span class="px-2 py-1 bg-blue-50 text-blue-700 font-bold rounded-md border border-blue-200">-${ord.qtyIssued} sqm</span>
+                    </div>
+                `;
+            });
+            document.getElementById('dashboard-recent-activity').innerHTML = actHtml || '<p class="text-xs text-slate-400 py-3 text-center">No recent order activity.</p>';
+        }
+
+        function renderMonthlyReportView() {
+            const period = document.getElementById('monthly-period-select').value;
+            const periodText = document.getElementById('monthly-period-select').options[document.getElementById('monthly-period-select').selectedIndex].text;
+            document.getElementById('monthly-period-label').innerText = periodText;
+
+            let periodOrders = orders.filter(o => period === 'ALL' || (o.period || o.date.substring(0, 7)) === period);
+
+            let mIssuedSum = 0;
+            let mWastageSum = 0;
+            let mReceivedSum = 0;
+
+            // Render Orders Log Table
+            let ordRowsHtml = '';
+            periodOrders.forEach(ord => {
+                const mat = materials.find(m => m.id === ord.materialId);
+                mIssuedSum += Number(ord.qtyIssued);
+                mWastageSum += Number(ord.qtyWastage);
+
+                ordRowsHtml += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-6 py-3.5 font-medium text-slate-600">${ord.date}</td>
+                        <td class="px-6 py-3.5 font-bold text-indigo-600">${ord.voucher}</td>
+                        <td class="px-6 py-3.5 font-bold text-slate-900">${ord.client}</td>
+                        <td class="px-6 py-3.5 text-slate-700 font-medium">${mat ? mat.name : 'Unknown'}</td>
+                        <td class="px-6 py-3.5 text-right font-bold text-blue-600">${ord.qtyIssued.toFixed(2)}</td>
+                        <td class="px-6 py-3.5 text-right font-bold text-amber-600">${ord.qtyWastage.toFixed(2)}</td>
+                        <td class="px-6 py-3.5 text-slate-500 text-xs font-semibold">${ord.machine}</td>
+                        <td class="px-6 py-3.5 text-center"><span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">${ord.status}</span></td>
+                        <td class="px-6 py-3.5 text-center no-print">
+                            <button onclick="deleteOrder('${ord.id}')" class="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 transition"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('monthly-orders-tbody').innerHTML = ordRowsHtml || '<tr><td colspan="9" class="text-center py-6 text-slate-400">No orders logged for this month.</td></tr>';
+
+            // Calculate Monthly Stock Reconciliation Table
+            let stockReconHtml = '';
+            materials.forEach(m => {
+                const calc = getMaterialCalculations(m.id, period);
+                if(period === 'ALL') mReceivedSum += calc.received;
+                else {
+                    transactions.filter(t => t.materialId === m.id && t.date.substring(0, 7) === period).forEach(t => mReceivedSum += Number(t.qty));
+                }
+
+                const isLow = calc.currentBal <= m.minStock;
+                const statusBadge = isLow 
+                    ? `<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full text-xs font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Low Stock Warning</span>`
+                    : `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-bold"><i class="fa-solid fa-check mr-1"></i> OK</span>`;
+
+                stockReconHtml += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-6 py-3.5 font-bold text-slate-900">${m.name}</td>
+                        <td class="px-6 py-3.5 text-center text-slate-500 font-medium">${m.unit}</td>
+                        <td class="px-6 py-3.5 text-right font-medium text-slate-600">${calc.beginning.toFixed(2)}</td>
+                        <td class="px-6 py-3.5 text-right font-bold text-emerald-600">+${calc.received.toFixed(2)}</td>
+                        <td class="px-6 py-3.5 text-right font-bold text-blue-600">-${calc.issued.toFixed(2)}</td>
+                        <td class="px-6 py-3.5 text-right font-bold text-amber-600">-${calc.wastage.toFixed(2)}</td>
+                        <td class="px-6 py-3.5 text-right font-extrabold text-slate-900 text-base">${calc.currentBal.toFixed(2)}</td>
+                        <td class="px-6 py-3.5 text-center">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('monthly-stock-tbody').innerHTML = stockReconHtml;
+
+            // Monthly KPIs Update
+            document.getElementById('monthly-stat-orders').innerText = periodOrders.length;
+            document.getElementById('monthly-stat-issued').innerText = mIssuedSum.toFixed(1) + " sqm";
+            document.getElementById('monthly-stat-wastage').innerText = mWastageSum.toFixed(1) + " sqm";
+            document.getElementById('monthly-stat-received').innerText = "+" + mReceivedSum.toFixed(1) + " sqm";
+
+            const wastagePct = mIssuedSum > 0 ? ((mWastageSum / mIssuedSum) * 100).toFixed(1) : "0.0";
+            document.getElementById('monthly-stat-wastage-pct').innerHTML = `<i class="fa-solid fa-trash-arrow-up mr-1"></i> ${wastagePct}% wastage ratio`;
+        }
+
+        function renderInventoryLedger() {
+            const search = document.getElementById('inventory-search').value.toLowerCase();
+            const filterCat = document.getElementById('inventory-category-filter').value;
+            let tbodyHtml = '';
+
+            materials.forEach(m => {
+                if(filterCat !== 'ALL' && m.category !== filterCat) return;
+                if(search && !m.name.toLowerCase().includes(search) && !m.category.toLowerCase().includes(search)) return;
+
+                const calc = getMaterialCalculations(m.id);
+                const isLow = calc.currentBal <= m.minStock;
+
+                const statusBadge = isLow 
+                    ? `<span class="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Low Stock Red Flag</span>`
+                    : `<span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center"><i class="fa-solid fa-check mr-1"></i> Normal</span>`;
+
+                tbodyHtml += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-6 py-4 font-bold text-slate-900">${m.name}</td>
+                        <td class="px-6 py-4 text-slate-600 font-medium">${m.category}</td>
+                        <td class="px-6 py-4 text-center text-slate-500">${m.unit}</td>
+                        <td class="px-6 py-4 text-right font-medium text-slate-600">${calc.beginning.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-right font-bold text-emerald-600">+${calc.received.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-right font-bold text-blue-600">-${calc.issued.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-right font-bold text-amber-600">-${calc.wastage.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-right font-extrabold text-slate-900 text-base">${calc.currentBal.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-center">${statusBadge}</td>
+                        <td class="px-6 py-4 text-center">
+                            <button onclick="deleteMaterial('${m.id}')" class="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 transition" title="Delete Material"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('inventory-tbody').innerHTML = tbodyHtml;
+        }
+
+        function renderTransactions() {
+            let html = '';
+            transactions.slice().reverse().forEach(tx => {
+                const mat = materials.find(m => m.id === tx.materialId);
+
+                html += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-6 py-4 font-medium text-slate-600">${tx.date}</td>
+                        <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">${tx.type}</span></td>
+                        <td class="px-6 py-4 font-bold text-slate-900">${mat ? mat.name : 'Unknown'}</td>
+                        <td class="px-6 py-4 text-right font-extrabold text-emerald-600">+${tx.qty}</td>
+                        <td class="px-6 py-4 text-slate-600 font-medium">${tx.reference}</td>
+                        <td class="px-6 py-4 text-center">
+                            <button onclick="deleteTransaction('${tx.id}')" class="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 transition"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('transactions-tbody').innerHTML = html;
+            document.getElementById('tx-count-badge').innerText = `${transactions.length} Records`;
+        }
+
+        function populateMaterialSelects() {
+            let opts = '';
+            materials.forEach(m => {
+                opts += `<option value="${m.id}">${m.name} (${m.category} - ${m.unit})</option>`;
+            });
+            document.getElementById('order-material-id').innerHTML = opts;
+            document.getElementById('tx-material-id').innerHTML = opts;
+        }
+
+        // Order Modal Handlers
+        function openOrderModal() { document.getElementById('order-modal').classList.remove('hidden'); }
+        function closeOrderModal() { document.getElementById('order-modal').classList.add('hidden'); }
+
+        function handleOrderSubmit(e) {
+            e.preventDefault();
+            const date = document.getElementById('order-date').value;
+            const voucher = document.getElementById('order-voucher').value;
+            const client = document.getElementById('order-client').value;
+            const materialId = document.getElementById('order-material-id').value;
+            const qtyIssued = parseFloat(document.getElementById('order-qty-issued').value);
+            const qtyWastage = parseFloat(document.getElementById('order-qty-wastage').value);
+            const machine = document.getElementById('order-machine').value;
+            const status = document.getElementById('order-status').value;
+            const period = date.substring(0, 7);
+
+            orders.push({
+                id: 'ord_' + Date.now(),
+                date, voucher, client, materialId, qtyIssued, qtyWastage, machine, status, period
+            });
+
+            closeOrderModal();
+            document.getElementById('order-form').reset();
+            document.getElementById('order-date').valueAsDate = new Date();
+            saveToStorage();
+        }
+
+        function deleteOrder(id) {
+            if(confirm('Are you sure you want to delete this order entry?')) {
+                orders = orders.filter(o => o.id !== id);
+                saveToStorage();
+            }
+        }
+
+        // Transaction Modal Handlers
+        function openTransactionModal(type = 'Received') { document.getElementById('tx-modal').classList.remove('hidden'); }
+        function closeTransactionModal() { document.getElementById('tx-modal').classList.add('hidden'); }
+
+        function handleTransactionSubmit(e) {
+            e.preventDefault();
+            const materialId = document.getElementById('tx-material-id').value;
+            const qty = parseFloat(document.getElementById('tx-qty').value);
+            const date = document.getElementById('tx-date').value;
+            const reference = document.getElementById('tx-reference').value;
+
+            transactions.push({
+                id: 'tx_' + Date.now(),
+                date, type: 'Received', materialId, qty, reference
+            });
+
+            closeTransactionModal();
+            document.getElementById('tx-form').reset();
+            document.getElementById('tx-date').valueAsDate = new Date();
+            saveToStorage();
+        }
+
+        function deleteTransaction(id) {
+            if(confirm('Are you sure you want to delete this transaction record?')) {
+                transactions = transactions.filter(t => t.id !== id);
+                saveToStorage();
+            }
+        }
+
+        // New Material Modal Handlers
+        function openNewMaterialModal() { document.getElementById('material-modal').classList.remove('hidden'); }
+        function closeNewMaterialModal() { document.getElementById('material-modal').classList.add('hidden'); }
+
+        function handleNewMaterialSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-mat-name').value;
+            const category = document.getElementById('new-mat-cat').value;
+            const unit = document.getElementById('new-mat-unit').value;
+            const beginning = parseFloat(document.getElementById('new-mat-beginning').value);
+            const minStock = parseFloat(document.getElementById('new-mat-min').value);
+
+            materials.push({
+                id: 'm_' + Date.now(),
+                name, category, unit, beginning, minStock
+            });
+
+            closeNewMaterialModal();
+            document.getElementById('material-form').reset();
+            saveToStorage();
+        }
+
+        function deleteMaterial(id) {
+            if(confirm('Are you sure you want to delete this material and its historical references?')) {
+                materials = materials.filter(m => m.id !== id);
+                orders = orders.filter(o => o.materialId !== id);
+                transactions = transactions.filter(t => t.materialId !== id);
+                saveToStorage();
+            }
+        }
+
+        // Export Monthly Report to CSV
+        function exportMonthlyReportCSV() {
+            const period = document.getElementById('monthly-period-select').value;
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "The Workshop PLC - Monthly Stock Reconciliation Report\n";
+            csvContent += `Reporting Period: ${period}\n\n`;
+            csvContent += "Material Name,Unit,Beginning Stock,Received (GRN),Issued (Orders),Wastage,Ending Balance\n";
+
+            materials.forEach(m => {
+                const calc = getMaterialCalculations(m.id, period);
+                csvContent += `"${m.name}","${m.unit}",${calc.beginning},${calc.received},${calc.issued},${calc.wastage},${calc.currentBal}\n`;
+            });
+
+            csvContent += "\n\nMonthly Orders Log\n";
+            csvContent += "Date,Voucher No,Client Name,Material,Issued Qty,Wastage Qty,Machine,Status\n";
+
+            orders.filter(o => period === 'ALL' || (o.period || o.date.substring(0, 7)) === period).forEach(o => {
+                const mat = materials.find(m => m.id === o.materialId);
+                csvContent += `"${o.date}","${o.voucher}","${o.client}","${mat ? mat.name : ''}",${o.qtyIssued},${o.qtyWastage},"${o.machine}","${o.status}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `The_Workshop_PLC_Stock_Report_${period}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        window.onload = initApp;
+    </script>
+
+</body>
+</html>
