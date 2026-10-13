@@ -3,55 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Workshop PLC - Enterprise Inventory & Google Sheets Sync</title>
+    <title>The Workshop PLC - Enterprise Admin Inventory & LPO System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: #f8fafc; }
-        .glass-panel { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .glass-panel { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
     </style>
 </head>
 <body class="min-h-screen pb-12 flex flex-col">
 
     <!-- LOGIN SCREEN -->
-    <div id="loginScreen" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+    <div id="loginScreen" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
         <div class="glass-panel w-full max-w-md p-8 rounded-3xl shadow-2xl space-y-6 border border-slate-700/50">
             <div class="text-center space-y-2">
                 <div class="w-16 h-16 bg-gradient-to-tr from-amber-500 to-amber-300 rounded-2xl flex items-center justify-center text-slate-950 font-black text-2xl mx-auto shadow-lg shadow-amber-500/20">
                     <i class="fa-solid fa-boxes-stacked"></i>
                 </div>
                 <h1 class="text-2xl font-bold tracking-tight text-white">The Workshop PLC</h1>
-                <p class="text-xs text-slate-400">Stock & Google Sheet Integration Portal</p>
+                <p class="text-xs text-slate-400">Enterprise Inventory & Admin Control Center</p>
             </div>
 
             <form onsubmit="handleLogin(event)" class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Username</label>
-                    <input type="text" id="loginUser" required placeholder="admin / operator / viewer" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-white">
+                    <input type="text" id="loginUser" required placeholder="admin" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-white">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
                     <input type="password" id="loginPass" required placeholder="••••••••" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-white">
                 </div>
-                <div id="loginError" class="text-xs text-rose-400 font-medium hidden">Invalid user credentials.</div>
+                <div id="loginError" class="text-xs text-rose-400 font-medium hidden">Invalid credentials.</div>
                 <button type="submit" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-bold py-3.5 rounded-xl text-sm shadow-lg shadow-amber-500/20 transition-all">
                     Sign In to Portal
                 </button>
             </form>
-
             <div class="pt-4 border-t border-slate-800 text-xs text-slate-500 text-center space-y-1">
-                <p>Admin: <span class="text-slate-300 font-mono">admin</span> / <span class="text-slate-300 font-mono">admin123</span></p>
+                <p>Default Admin: <span class="text-slate-300 font-mono">admin</span> / <span class="text-slate-300 font-mono">admin123</span></p>
                 <p>Operator: <span class="text-slate-300 font-mono">operator</span> / <span class="text-slate-300 font-mono">op123</span></p>
             </div>
         </div>
     </div>
 
-    <!-- MAIN INTERFACE -->
+    <!-- MAIN APP SCREEN -->
     <div id="appScreen" class="hidden flex-1 flex-col">
-        <header class="bg-slate-900/80 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
-            <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-col md:flex-row justify-between items-center gap-4">
+        <!-- Header -->
+        <header class="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-slate-950 font-bold text-lg shadow-md">
                         <i class="fa-solid fa-boxes-stacked"></i>
@@ -59,89 +59,90 @@
                     <div>
                         <h1 class="font-bold text-base tracking-wide text-white flex items-center gap-2">
                             The Workshop PLC 
-                            <span id="roleBadge" class="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full font-extrabold bg-amber-500/20 text-amber-400 border border-amber-500/30">ADMIN</span>
+                            <span id="roleBadge" class="text-[10px] uppercase tracking-widest px-2.5 py-0.5 rounded-full font-extrabold bg-amber-500/20 text-amber-400 border border-amber-500/30">ADMIN</span>
                         </h1>
-                        <p class="text-xs text-slate-400">Inventory with Live Banner Roll Tracking</p>
+                        <p class="text-xs text-slate-400">Inventory, LPO Calculation & Wastage Tracker</p>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-2 flex-wrap">
-                    <button onclick="syncGoogleSheet()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5 shadow-md">
-                        <i class="fa-solid fa-arrows-rotate"></i> Sync Google Sheet
+                    <button id="btnOrder" onclick="openModal('orderModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-3.5 py-2.5 rounded-lg flex items-center gap-1.5 shadow">
+                        <i class="fa-solid fa-calculator"></i> LPO Order & Auto Calc
                     </button>
-                    <button id="btnOrder" onclick="openModal('orderModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5 shadow-md">
-                        <i class="fa-solid fa-plus"></i> New Order
-                    </button>
-                    <button id="btnGRN" onclick="openModal('grnModal')" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5 shadow-md">
+                    <button id="btnGRN" onclick="openModal('grnModal')" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs px-3.5 py-2.5 rounded-lg flex items-center gap-1.5 shadow">
                         <i class="fa-solid fa-truck-ramp-box"></i> GRN Entry
                     </button>
-                    <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3 py-2 rounded-lg border border-slate-700">
+                    <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3 py-2.5 rounded-lg border border-slate-700">
                         <i class="fa-solid fa-right-from-bracket"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- Tab Navigation -->
-            <div class="bg-slate-950 px-4 border-t border-slate-800">
+            <!-- Tab Navigation Bar -->
+            <div class="bg-slate-950 px-6 border-t border-slate-800">
                 <div class="max-w-7xl mx-auto flex gap-6 overflow-x-auto text-xs font-semibold">
                     <button onclick="switchTab('dashboard')" id="tabBtn-dashboard" class="py-3 text-amber-400 border-b-2 border-amber-400 flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-chart-pie"></i> Dashboard & Rolls
+                        <i class="fa-solid fa-chart-pie"></i> Executive Dashboard
                     </button>
                     <button onclick="switchTab('ledger')" id="tabBtn-ledger" class="py-3 text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-book-open"></i> Full Stock Ledger
+                        <i class="fa-solid fa-book-open"></i> Stock Ledger & Min Balances
                     </button>
-                    <button onclick="switchTab('sheetsync')" id="tabBtn-sheetsync" class="py-3 text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-link text-emerald-400"></i> Google Sheet Connection
+                    <button onclick="switchTab('orders')" id="tabBtn-orders" class="py-3 text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-receipt"></i> Order & Wastage Log
+                    </button>
+                    <button id="tabAdminNav" onclick="switchTab('admin')" class="py-3 text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-user-shield text-amber-400"></i> Admin Panel & Users
                     </button>
                 </div>
             </div>
         </header>
 
-        <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6 flex-1">
+        <main class="max-w-7xl mx-auto px-6 mt-6 space-y-6 flex-1 w-full">
 
-            <!-- TAB 1: DASHBOARD & ROLL TRACKER -->
+            <!-- TAB 1: EXECUTIVE DASHBOARD -->
             <div id="tab-dashboard" class="space-y-6">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- Stat Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="glass-panel p-4 rounded-2xl border-l-4 border-amber-500">
-                        <p class="text-[11px] font-semibold uppercase text-slate-400">Banner Rolls in Stock</p>
+                        <p class="text-[11px] font-semibold uppercase text-slate-400">Banner Rolls in Store</p>
                         <h3 id="statRolls" class="text-2xl font-bold text-amber-400 mt-1">0 Rolls</h3>
-                        <p class="text-xs text-slate-500">Packed & Unpacked Rolls</p>
+                        <p class="text-xs text-slate-500">3.2m, 2.1m & Sticker rolls</p>
                     </div>
                     <div class="glass-panel p-4 rounded-2xl border-l-4 border-emerald-500">
                         <p class="text-[11px] font-semibold uppercase text-slate-400">Total Media Stock</p>
                         <h3 id="statMedia" class="text-2xl font-bold text-white mt-1">0.0 Sqm</h3>
-                        <p class="text-xs text-slate-500">Available Surface Area</p>
+                        <p class="text-xs text-slate-500">Total surface balance</p>
                     </div>
                     <div class="glass-panel p-4 rounded-2xl border-l-4 border-blue-500">
-                        <p class="text-[11px] font-semibold uppercase text-slate-400">Inks & Flushing Fluids</p>
+                        <p class="text-[11px] font-semibold uppercase text-slate-400">Inks & Solvents</p>
                         <h3 id="statInk" class="text-2xl font-bold text-blue-400 mt-1">0.0 L</h3>
-                        <p class="text-xs text-slate-500">CMYK Solvent Reserve</p>
+                        <p class="text-xs text-slate-500">CMYK + Flushing Liquid</p>
                     </div>
                     <div class="glass-panel p-4 rounded-2xl border-l-4 border-rose-500">
                         <p class="text-[11px] font-semibold uppercase text-slate-400">Low Stock Red Flags</p>
                         <h3 id="statRedFlags" class="text-2xl font-bold text-rose-400 mt-1">0</h3>
-                        <p class="text-xs text-rose-400/80">Reorder thresholds</p>
+                        <p class="text-xs text-rose-400/80">Items below minimum balance</p>
                     </div>
                 </div>
 
-                <!-- Roll Section Preview -->
-                <div class="glass-panel rounded-2xl p-5">
+                <!-- Banner Roll & Stock Snapshot Table -->
+                <div class="glass-panel rounded-2xl p-6 shadow-xl">
                     <div class="flex justify-between items-center mb-4">
                         <div>
                             <h2 class="font-bold text-base text-white flex items-center gap-2">
-                                <i class="fa-solid fa-scroll text-amber-400"></i> Banner & Sticker Roll Count Section
+                                <i class="fa-solid fa-scroll text-amber-400"></i> Banner & Sticker Roll Section
                             </h2>
-                            <p class="text-xs text-slate-400">Tracks physical roll quantities alongside Sqm surface balance</p>
+                            <p class="text-xs text-slate-400">Live physical roll counts and minimum stock thresholds</p>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm">
                             <thead>
                                 <tr class="border-b border-slate-800 text-slate-400 text-xs bg-slate-900/50">
-                                    <th class="p-3">MATERIAL NAME</th>
-                                    <th class="p-3 text-center">ROLL COUNT</th>
-                                    <th class="p-3 text-right">TOTAL SQM</th>
-                                    <th class="p-3 text-right">LIVE SQM BAL</th>
+                                    <th class="p-3">MATERIAL ITEM</th>
+                                    <th class="p-3 text-center">ROLLS</th>
+                                    <th class="p-3 text-right">MIN BALANCE</th>
+                                    <th class="p-3 text-right">CURRENT BALANCE</th>
                                     <th class="p-3 text-center">STATUS</th>
                                 </tr>
                             </thead>
@@ -151,10 +152,11 @@
                 </div>
             </div>
 
-            <!-- TAB 2: FULL LEDGER -->
+            <!-- TAB 2: FULL STOCK LEDGER -->
             <div id="tab-ledger" class="space-y-6 hidden">
-                <div class="glass-panel rounded-2xl p-5">
-                    <h2 class="font-bold text-base text-white mb-1">Full Stock Ledger</h2>
+                <div class="glass-panel rounded-2xl p-6 shadow-xl">
+                    <h2 class="font-bold text-base text-white mb-1">Full Stock Balance Ledger</h2>
+                    <p class="text-xs text-slate-400 mb-4">Current Balance = Beginning + Received (GRN) - Issued - Wastage</p>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm">
                             <thead>
@@ -167,6 +169,7 @@
                                     <th class="p-3 text-right text-blue-400">- Issued</th>
                                     <th class="p-3 text-right text-rose-400">- Wastage</th>
                                     <th class="p-3 text-right font-bold text-white">Live Balance</th>
+                                    <th class="p-3 text-center">Status</th>
                                 </tr>
                             </thead>
                             <tbody id="fullLedgerBody" class="divide-y divide-slate-800/60"></tbody>
@@ -175,29 +178,71 @@
                 </div>
             </div>
 
-            <!-- TAB 3: GOOGLE SHEET INTEGRATION -->
-            <div id="tab-sheetsync" class="space-y-6 hidden">
-                <div class="glass-panel rounded-2xl p-6 space-y-5">
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-2xl flex items-center justify-center text-xl font-bold">
-                            <i class="fa-file-csv fa-solid"></i>
-                        </div>
+            <!-- TAB 3: ORDERS & WASTAGE LOG -->
+            <div id="tab-orders" class="space-y-6 hidden">
+                <div class="glass-panel rounded-2xl p-6 shadow-xl">
+                    <h2 class="font-bold text-base text-white mb-1">LPO Orders & Wastage Log</h2>
+                    <p class="text-xs text-slate-400 mb-4">Detailed calculation breakdown of print jobs and off-cut losses</p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-400 text-xs bg-slate-900/50">
+                                    <th class="p-3">Client / LPO Reference</th>
+                                    <th class="p-3">Material Used</th>
+                                    <th class="p-3 text-right">Print Area (Sqm)</th>
+                                    <th class="p-3 text-right text-rose-400">Off-cut Wastage</th>
+                                    <th class="p-3 text-right font-bold text-amber-400">Total Deducted</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTableBody" class="divide-y divide-slate-800/60"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: ADMIN PANEL & USER CONTROL (ADMIN ONLY) -->
+            <div id="tab-admin" class="space-y-6 hidden">
+                <div class="glass-panel rounded-2xl p-6 space-y-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
                         <div>
-                            <h2 class="font-bold text-lg text-white">Google Sheet Live Integration Settings</h2>
-                            <p class="text-xs text-slate-400">Link your Google Sheet URL so stock additions and deductions sync live</p>
+                            <h2 class="font-bold text-base text-white flex items-center gap-2">
+                                <i class="fa-solid fa-user-gear text-amber-400"></i> Admin User Privilege Center
+                            </h2>
+                            <p class="text-xs text-slate-400">Manage team accounts, add new operators, or adjust permissions</p>
                         </div>
-                    </div>
-
-                    <div class="space-y-3">
-                        <label class="block text-xs font-semibold text-slate-300">PUBLISHED GOOGLE SHEET CSV / WEB URL</label>
-                        <input type="text" id="sheetUrlInput" placeholder="Paste published Google Sheet CSV link here" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-amber-500">
-                        <p class="text-[11px] text-slate-500">How to get link: In Google Sheets, go to <span class="text-amber-400">File → Share → Publish to web</span>, select <span class="text-amber-400">CSV</span>, and click Publish.</p>
-                    </div>
-
-                    <div class="flex gap-2 pt-2">
-                        <button onclick="saveSheetUrl()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-lg shadow">
-                            Save Link & Sync Now
+                        <button onclick="openModal('addUserModal')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow flex items-center gap-1.5">
+                            <i class="fa-solid fa-user-plus"></i> Add New User
                         </button>
+                    </div>
+
+                    <!-- User Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-400 text-xs bg-slate-900/50">
+                                    <th class="p-3">Username</th>
+                                    <th class="p-3 text-center">Role</th>
+                                    <th class="p-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody" class="divide-y divide-slate-800/60"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Admin Danger Zone -->
+                    <div class="pt-6 border-t border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h3 class="font-bold text-sm text-rose-400">Admin Data Controls</h3>
+                            <p class="text-xs text-slate-400">Erase all filled inventory quantities or restore default stock baseline</p>
+                        </div>
+                        <div class="flex gap-2 flex-wrap">
+                            <button onclick="clearAllToZero()" class="bg-rose-900/50 hover:bg-rose-900/80 text-rose-300 border border-rose-700/60 text-xs font-bold px-4 py-2.5 rounded-xl shadow">
+                                <i class="fa-solid fa-trash-can me-1"></i> Zero Out All Balances
+                            </button>
+                            <button onclick="resetData()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl shadow">
+                                <i class="fa-solid fa-rotate-right me-1"></i> Reload Default Baseline
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -205,12 +250,12 @@
         </main>
     </div>
 
-    <!-- MODAL: ORDER WITH AUTO WASTAGE & ROLL DEDUCTION -->
+    <!-- MODAL: LPO ORDER ENTRY WITH AUTO WASTAGE CALCULATION -->
     <div id="orderModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="glass-panel w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
             <div class="bg-slate-900 p-4 border-b border-slate-800 flex justify-between items-center">
                 <h3 class="font-bold text-sm text-white flex items-center gap-2">
-                    <i class="fa-solid fa-calculator text-amber-400"></i> New Order & Auto Wastage Calculator
+                    <i class="fa-solid fa-calculator text-amber-400"></i> New LPO Order & Auto Calculator
                 </h3>
                 <button onclick="closeModal('orderModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
@@ -220,14 +265,15 @@
                     <select id="orderMaterial" required onchange="calculateOrderTotals()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none focus:border-amber-500"></select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">CLIENT / JOB REFERENCE *</label>
-                    <input type="text" id="orderClient" required placeholder="e.g. Marvless Event" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">CLIENT / LPO NO *</label>
+                    <input type="text" id="orderClient" required placeholder="e.g. Marvless Event (TWS/015/2018)" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none focus:border-amber-500">
                 </div>
 
+                <!-- LPO Dimension Auto Calculations -->
                 <div class="grid grid-cols-3 gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
                     <div>
                         <label class="block text-[10px] font-bold text-slate-400 mb-1">WIDTH (m)</label>
-                        <input type="number" id="calcWidth" step="0.01" oninput="calculateOrderTotals()" placeholder="3.2" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white">
+                        <input type="number" id="calcWidth" step="0.01" oninput="calculateOrderTotals()" placeholder="3.0" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-slate-400 mb-1">HEIGHT (m)</label>
@@ -239,20 +285,21 @@
                     </div>
                 </div>
 
+                <!-- Automated SQM & Wastage Results -->
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 mb-1">PRINTED AREA (Sqm/L) *</label>
-                        <input type="number" id="orderQty" step="0.01" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+                        <input type="number" id="orderQty" step="0.01" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-rose-400 mb-1">ESTIMATED WASTAGE</label>
-                        <input type="number" id="orderWastage" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-rose-900/50 rounded-lg p-2.5 text-sm text-rose-300">
+                        <label class="block text-xs font-semibold text-rose-400 mb-1">AUTO WASTAGE (Sqm/L)</label>
+                        <input type="number" id="orderWastage" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-rose-900/50 rounded-lg p-2.5 text-sm text-rose-300 outline-none">
                     </div>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
                     <button type="button" onclick="closeModal('orderModal')" class="px-4 py-2 text-slate-400 text-xs font-semibold">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow">Deduct & Sync</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow">Deduct & Post Order</button>
                 </div>
             </form>
         </div>
@@ -273,58 +320,98 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 mb-1">NEW ROLLS ADDED</label>
-                        <input type="number" id="grnRolls" min="0" placeholder="e.g. 2 Rolls" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
+                        <input type="number" id="grnRolls" min="0" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">TOTAL SQM / LITERS *</label>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">QTY (SQM / LITERS) *</label>
                         <input type="number" id="grnQty" step="0.01" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
                     </div>
                 </div>
                 <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
                     <button type="button" onclick="closeModal('grnModal')" class="px-4 py-2 text-slate-400 text-xs font-semibold">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow">Add Stock & Sync</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow">Add Stock</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- MODAL: ADD USER (ADMIN) -->
+    <div id="addUserModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="glass-panel w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
+            <div class="bg-slate-900 p-4 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="font-bold text-sm text-white"><i class="fa-solid fa-user-plus text-amber-400 me-2"></i> Create User Account</h3>
+                <button onclick="closeModal('addUserModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="submitNewUser(event)" class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">USERNAME *</label>
+                    <input type="text" id="newUsername" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">PASSWORD *</label>
+                    <input type="password" id="newPassword" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">ROLE *</label>
+                    <select id="newRole" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
+                        <option value="operator">Operator (Orders & GRN)</option>
+                        <option value="viewer">Viewer (Read-Only)</option>
+                        <option value="admin">Administrator (Full Control)</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                    <button type="button" onclick="closeModal('addUserModal')" class="px-4 py-2 text-slate-400 text-xs font-semibold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg shadow">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SYSTEM JAVASCRIPT -->
     <script>
+        // Baseline Stock with Minimum Balance Thresholds
         const defaultStock = [
-            { id: 1, name: "White Back banner 3.2mw", category: "Media", unit: "Sqm", rolls: 8, beginning: 1113.06, received: 0, issued: 194.9, wastage: 22.12, minLimit: 100 },
-            { id: 2, name: "White Back banner 2.1mw", category: "Media", unit: "Sqm", rolls: 2, beginning: 157.6, received: 0, issued: 33.8, wastage: 6.31, minLimit: 30 },
-            { id: 3, name: "Grayback Banner 0.95mw", category: "Media", unit: "Sqm", rolls: 1, beginning: 34.2, received: 0, issued: 19.5, wastage: 3.3, minLimit: 20 },
-            { id: 4, name: "Vinyl Glossy Sticker 1.07mw", category: "Media", unit: "Sqm", rolls: 3, beginning: 198.48, received: 48.15, issued: 198.76, wastage: 34.06, minLimit: 40 },
-            { id: 5, name: "Vinyl Glossy Sticker 1.52mw", category: "Media", unit: "Sqm", rolls: 1, beginning: 60.5, received: 0, issued: 36.98, wastage: 6.07, minLimit: 20 },
-            { id: 6, name: "Frosted Sticker 1.22mw", category: "Media", unit: "Sqm", rolls: 2, beginning: 141.77, received: 0, issued: 49.07, wastage: 18.68, minLimit: 25 },
-            { id: 7, name: "Mesh Sticker 1.27mw", category: "Media", unit: "Sqm", rolls: 1, beginning: 10.922, received: 0, issued: 8.77, wastage: 2.12, minLimit: 5 },
-            { id: 8, name: "Cyan Solvent Ink", category: "Ink", unit: "Liters", rolls: 0, beginning: 15.0, received: 5.0, issued: 4.5, wastage: 0.2, minLimit: 5.0 },
-            { id: 9, name: "Magenta Solvent Ink", category: "Ink", unit: "Liters", rolls: 0, beginning: 15.0, received: 5.0, issued: 4.8, wastage: 0.2, minLimit: 5.0 },
-            { id: 10, name: "Yellow Solvent Ink", category: "Ink", unit: "Liters", rolls: 0, beginning: 15.0, received: 5.0, issued: 5.1, wastage: 0.2, minLimit: 5.0 },
-            { id: 11, name: "Black Solvent Ink", category: "Ink", unit: "Liters", rolls: 0, beginning: 15.0, received: 5.0, issued: 4.2, wastage: 0.2, minLimit: 5.0 }
+            { id: 1, name: "White Back banner 3.2mw", category: "Media", unit: "Sqm", rolls: 8, minLimit: 100, beginning: 1113.06, received: 0, issued: 194.9, wastage: 22.12 },
+            { id: 2, name: "White Back banner 2.1mw", category: "Media", unit: "Sqm", rolls: 2, minLimit: 30, beginning: 157.6, received: 0, issued: 33.8, wastage: 6.31 },
+            { id: 3, name: "Grayback Banner 0.95mw", category: "Media", unit: "Sqm", rolls: 1, minLimit: 20, beginning: 34.2, received: 0, issued: 19.5, wastage: 3.3 },
+            { id: 4, name: "Vinyl Glossy Sticker 1.07mw", category: "Media", unit: "Sqm", rolls: 3, minLimit: 40, beginning: 198.48, received: 48.15, issued: 198.76, wastage: 34.06 },
+            { id: 5, name: "Vinyl Glossy Sticker 1.52mw", category: "Media", unit: "Sqm", rolls: 1, minLimit: 20, beginning: 60.5, received: 0, issued: 36.98, wastage: 6.07 },
+            { id: 6, name: "Frosted Sticker 1.22mw", category: "Media", unit: "Sqm", rolls: 2, minLimit: 25, beginning: 141.77, received: 0, issued: 49.07, wastage: 18.68 },
+            { id: 7, name: "Mesh Sticker 1.27mw", category: "Media", unit: "Sqm", rolls: 1, minLimit: 5, beginning: 10.922, received: 0, issued: 8.77, wastage: 2.12 },
+            { id: 8, name: "Cyan Solvent Ink", category: "Ink", unit: "Liters", rolls: 0, minLimit: 5.0, beginning: 15.0, received: 5.0, issued: 4.5, wastage: 0.2 },
+            { id: 9, name: "Magenta Solvent Ink", category: "Ink", unit: "Liters", rolls: 0, minLimit: 5.0, beginning: 15.0, received: 5.0, issued: 4.8, wastage: 0.2 },
+            { id: 10, name: "Yellow Solvent Ink", category: "Ink", unit: "Liters", rolls: 0, minLimit: 5.0, beginning: 15.0, received: 5.0, issued: 5.1, wastage: 0.2 },
+            { id: 11, name: "Black Solvent Ink", category: "Ink", unit: "Liters", rolls: 0, minLimit: 5.0, beginning: 15.0, received: 5.0, issued: 4.2, wastage: 0.2 },
+            { id: 12, name: "Flushing Solvent Liquid", category: "Ink", unit: "Liters", rolls: 0, minLimit: 5.0, beginning: 20.0, received: 0.0, issued: 3.0, wastage: 0.5 }
         ];
 
         const defaultUsers = [
             { username: "admin", password: "admin123", role: "admin" },
-            { username: "operator", password: "op123", role: "operator" }
+            { username: "operator", password: "op123", role: "operator" },
+            { username: "viewer", password: "viewer123", role: "viewer" }
         ];
 
         let currentUser = JSON.parse(localStorage.getItem('tws_user_session')) || null;
-        let stockData = JSON.parse(localStorage.getItem('tws_stock_v5')) || defaultStock;
-        let googleSheetUrl = localStorage.getItem('tws_sheet_url') || "";
+        let usersData = JSON.parse(localStorage.getItem('tws_users_v7')) || defaultUsers;
+        let stockData = JSON.parse(localStorage.getItem('tws_stock_v7')) || defaultStock;
+        let ordersData = JSON.parse(localStorage.getItem('tws_orders_v7')) || [];
 
         function saveState() {
-            localStorage.setItem('tws_stock_v5', JSON.stringify(stockData));
+            localStorage.setItem('tws_users_v7', JSON.stringify(usersData));
+            localStorage.setItem('tws_stock_v7', JSON.stringify(stockData));
+            localStorage.setItem('tws_orders_v7', JSON.stringify(ordersData));
         }
 
         function handleLogin(e) {
             e.preventDefault();
             const u = document.getElementById('loginUser').value.trim();
             const p = document.getElementById('loginPass').value.trim();
-            const found = defaultUsers.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p);
 
+            const found = usersData.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p);
             if (found) {
                 currentUser = found;
                 localStorage.setItem('tws_user_session', JSON.stringify(currentUser));
+                document.getElementById('loginError').classList.add('hidden');
                 initUI();
             } else {
                 document.getElementById('loginError').classList.remove('hidden');
@@ -342,17 +429,29 @@
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('appScreen').classList.remove('hidden');
             document.getElementById('appScreen').classList.add('flex');
+
             document.getElementById('roleBadge').innerText = currentUser.role.toUpperCase();
-            if (googleSheetUrl) document.getElementById('sheetUrlInput').value = googleSheetUrl;
+
+            // Permissions
+            const isAdmin = currentUser.role === 'admin';
+            const isViewer = currentUser.role === 'viewer';
+
+            document.getElementById('tabAdminNav').style.display = isAdmin ? 'inline-flex' : 'none';
+            document.getElementById('btnOrder').style.display = !isViewer ? 'inline-flex' : 'none';
+            document.getElementById('btnGRN').style.display = !isViewer ? 'inline-flex' : 'none';
+
             populateDropdowns();
             renderAll();
         }
 
         function switchTab(tabId) {
-            ['dashboard', 'ledger', 'sheetsync'].forEach(id => {
-                document.getElementById('tab-' + id).classList.add('hidden');
-                document.getElementById('tabBtn-' + id).className = "py-3 text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap";
+            ['dashboard', 'ledger', 'orders', 'admin'].forEach(id => {
+                const el = document.getElementById('tab-' + id);
+                const btn = document.getElementById('tabBtn-' + id);
+                if (el) el.classList.add('hidden');
+                if (btn) btn.className = "py-3 text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap";
             });
+
             document.getElementById('tab-' + tabId).classList.remove('hidden');
             document.getElementById('tabBtn-' + tabId).className = "py-3 text-amber-400 border-b-2 border-amber-400 flex items-center gap-2 whitespace-nowrap";
         }
@@ -363,6 +462,7 @@
             document.getElementById('grnMaterial').innerHTML = html;
         }
 
+        // Auto LPO Area & Off-Cut Wastage Calculation
         function calculateOrderTotals() {
             const w = parseFloat(document.getElementById('calcWidth').value) || 0;
             const h = parseFloat(document.getElementById('calcHeight').value) || 0;
@@ -389,19 +489,22 @@
                     totInk += bal;
                 }
 
-                if (bal <= item.minLimit) redFlags++;
+                const isLow = bal <= item.minLimit;
+                if (isLow) redFlags++;
 
-                const status = bal <= 0 ? `<span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded text-[10px] font-bold">OUT</span>` :
-                               (bal <= item.minLimit ? `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-bold">⚠️ LOW</span>` : 
-                               `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-semibold">OK</span>`);
+                const status = bal <= 0 
+                    ? `<span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded text-[10px] font-bold">0.0 EMPTY</span>` 
+                    : (isLow 
+                        ? `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-bold">⚠️ LOW STOCK</span>` 
+                        : `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-semibold">HEALTHY</span>`);
 
                 if (item.category === 'Media') {
                     rollsHtml += `
                         <tr class="hover:bg-slate-800/40">
                             <td class="p-3 font-semibold text-white">${item.name}</td>
-                            <td class="p-3 text-center text-amber-400 font-bold">${item.rolls || 0} Rolls</td>
-                            <td class="p-3 text-right text-slate-400">${item.beginning.toFixed(2)} Sqm</td>
-                            <td class="p-3 text-right font-bold text-white">${bal.toFixed(2)} Sqm</td>
+                            <td class="p-3 text-center font-bold text-amber-400">${item.rolls || 0} Rolls</td>
+                            <td class="p-3 text-right text-slate-400">${item.minLimit} Sqm</td>
+                            <td class="p-3 text-right font-bold ${isLow ? 'text-rose-400':'text-white'}">${bal.toFixed(2)} Sqm</td>
                             <td class="p-3 text-center">${status}</td>
                         </tr>
                     `;
@@ -411,12 +514,13 @@
                     <tr class="hover:bg-slate-800/40">
                         <td class="p-3 font-semibold text-white">${item.name}</td>
                         <td class="p-3 text-center text-xs text-slate-400">${item.unit}</td>
-                        <td class="p-3 text-center font-bold text-amber-400">${item.rolls || '-'}</td>
+                        <td class="p-3 text-center font-bold text-amber-400">${item.rolls > 0 ? item.rolls + ' Rolls' : '-'}</td>
                         <td class="p-3 text-right text-slate-400">${item.beginning.toFixed(2)}</td>
                         <td class="p-3 text-right text-emerald-400">+${item.received.toFixed(2)}</td>
                         <td class="p-3 text-right text-blue-400">-${item.issued.toFixed(2)}</td>
                         <td class="p-3 text-right text-rose-400">-${item.wastage.toFixed(2)}</td>
                         <td class="p-3 text-right font-bold text-white">${bal.toFixed(2)}</td>
+                        <td class="p-3 text-center">${status}</td>
                     </tr>
                 `;
             });
@@ -428,11 +532,35 @@
             document.getElementById('statMedia').innerText = totMedia.toFixed(2) + " Sqm";
             document.getElementById('statInk').innerText = totInk.toFixed(1) + " L";
             document.getElementById('statRedFlags').innerText = redFlags;
+
+            // Render Orders
+            document.getElementById('ordersTableBody').innerHTML = ordersData.length ? ordersData.map(o => `
+                <tr class="hover:bg-slate-800/40">
+                    <td class="p-3 font-semibold text-white">${o.client}</td>
+                    <td class="p-3 text-slate-300">${o.materialName}</td>
+                    <td class="p-3 text-right text-blue-400">${o.qty.toFixed(2)}</td>
+                    <td class="p-3 text-right text-rose-400">${o.wastage.toFixed(2)}</td>
+                    <td class="p-3 text-right font-bold text-amber-400">${(o.qty + o.wastage).toFixed(2)}</td>
+                </tr>
+            `).join('') : `<tr><td colspan="5" class="p-4 text-center text-xs text-slate-500">No orders logged yet.</td></tr>`;
+
+            // Render Admin User Table
+            document.getElementById('usersTableBody').innerHTML = usersData.map(u => `
+                <tr class="hover:bg-slate-800/40">
+                    <td class="p-3 font-mono text-white">${u.username}</td>
+                    <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-slate-800 text-amber-400">${u.role}</span></td>
+                    <td class="p-3 text-right">
+                        ${u.username !== 'admin' ? `<button onclick="deleteUser('${u.username}')" class="text-xs text-rose-400 hover:underline"><i class="fa-solid fa-trash me-1"></i> Delete</button>` : `<span class="text-xs text-slate-600">System Admin</span>`}
+                    </td>
+                </tr>
+            `).join('');
         }
 
+        // Submit New Order
         function submitOrder(e) {
             e.preventDefault();
             const id = parseInt(document.getElementById('orderMaterial').value);
+            const client = document.getElementById('orderClient').value.trim();
             const qty = parseFloat(document.getElementById('orderQty').value) || 0;
             const wastage = parseFloat(document.getElementById('orderWastage').value) || 0;
 
@@ -440,6 +568,7 @@
             if (mat) {
                 mat.issued += qty;
                 mat.wastage += wastage;
+                ordersData.unshift({ client, materialName: mat.name, qty, wastage });
                 saveState();
                 renderAll();
                 closeModal('orderModal');
@@ -447,6 +576,7 @@
             }
         }
 
+        // Submit GRN
         function submitGRN(e) {
             e.preventDefault();
             const id = parseInt(document.getElementById('grnMaterial').value);
@@ -464,27 +594,56 @@
             }
         }
 
-        function saveSheetUrl() {
-            googleSheetUrl = document.getElementById('sheetUrlInput').value.trim();
-            localStorage.setItem('tws_sheet_url', googleSheetUrl);
-            alert("Google Sheet CSV link saved successfully!");
-            syncGoogleSheet();
+        // ADMIN USER CONTROL FUNCTIONS
+        function submitNewUser(e) {
+            e.preventDefault();
+            const username = document.getElementById('newUsername').value.trim();
+            const password = document.getElementById('newPassword').value.trim();
+            const role = document.getElementById('newRole').value;
+
+            if (usersData.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                return alert('Username already exists!');
+            }
+
+            usersData.push({ username, password, role });
+            saveState();
+            renderAll();
+            closeModal('addUserModal');
+            e.target.reset();
         }
 
-        function syncGoogleSheet() {
-            if (!googleSheetUrl) return alert("Please set your Google Sheet CSV URL in 'Google Sheet Connection' tab first.");
-            fetch(googleSheetUrl)
-                .then(res => res.text())
-                .then(csvText => {
-                    alert("Synced successfully with Google Sheet!");
-                })
-                .catch(err => alert("Error syncing Google Sheet. Ensure 'Publish to Web' as CSV is enabled."));
+        function deleteUser(u) {
+            if (confirm(`Remove user account "${u}"?`)) {
+                usersData = usersData.filter(x => x.username !== u);
+                saveState();
+                renderAll();
+            }
+        }
+
+        function clearAllToZero() {
+            if (confirm("ADMIN WARNING: Erase all filled stock quantities and start fresh at 0.0?")) {
+                stockData = stockData.map(item => ({ ...item, beginning: 0, received: 0, issued: 0, wastage: 0, rolls: 0 }));
+                ordersData = [];
+                saveState();
+                renderAll();
+            }
+        }
+
+        function resetData() {
+            if (confirm("Restore default stock baseline report?")) {
+                stockData = defaultStock;
+                ordersData = [];
+                saveState();
+                renderAll();
+            }
         }
 
         function openModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
 
-        window.onload = function() { if (currentUser) initUI(); };
+        window.onload = function() {
+            if (currentUser) initUI();
+        };
     </script>
 </body>
 </html>
