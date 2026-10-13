@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Workshop PLC - Inventory & Stock Management System</title>
+    <title>The Workshop PLC - Inventory Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -23,12 +23,16 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold tracking-wide">The Workshop PLC</h1>
-                    <p class="text-xs text-slate-400">Monthly Stock, Order & Wastage Management System</p>
+                    <p class="text-xs text-slate-400">Inventory Management System</p>
                 </div>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
+                <!-- Erase / Zero Out Button -->
+                <button onclick="clearAllToZero()" class="bg-rose-700 hover:bg-rose-600 text-white text-xs font-bold px-3 py-2 rounded-lg shadow border border-rose-600 flex items-center gap-1.5">
+                    <i class="fa-solid fa-trash-can"></i> Start Fresh (0.0)
+                </button>
                 <button onclick="resetData()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700">
-                    <i class="fa-solid fa-rotate-right me-1"></i> Reset Baseline Data
+                    <i class="fa-solid fa-rotate-right me-1"></i> Load Baseline Report
                 </button>
                 <button onclick="openModal('orderModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-3 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow">
                     <i class="fa-solid fa-plus"></i> Log New Order
@@ -285,8 +289,26 @@
             localStorage.setItem('tws_grn_v3', JSON.stringify(grnLogData));
         }
 
+        // CLEAR ALL DATA TO ZERO (0.0)
+        function clearAllToZero() {
+            if (confirm("Are you sure you want to erase ALL stock balances and start from 0.0?")) {
+                stockData = stockData.map(item => ({
+                    ...item,
+                    beginning: 0,
+                    received: 0,
+                    issued: 0,
+                    wastage: 0
+                }));
+                ordersData = [];
+                grnLogData = [];
+                saveData();
+                renderAll();
+            }
+        }
+
+        // RESET BACK TO DEFAULT MONTHLY REPORT DATA
         function resetData() {
-            if(confirm("Reset all stock data back to baseline monthly report?")) {
+            if(confirm("Reset all stock data back to default monthly report baseline?")) {
                 localStorage.removeItem('tws_master_v3');
                 localStorage.removeItem('tws_orders_v3');
                 localStorage.removeItem('tws_grn_v3');
@@ -311,8 +333,6 @@
 
         function renderAll() {
             let totBeg = 0, totCur = 0, totInk = 0, redFlags = 0;
-            
-            // Dashboard & Ledger tables
             let dashHtml = '', ledgerHtml = '';
             
             stockData.forEach(item => {
@@ -325,9 +345,9 @@
                 }
 
                 const isLow = balance <= item.minLimit;
-                if(isLow) redFlags++;
+                if(isLow && balance > 0) redFlags++;
 
-                let status = balance <= 0 ? `<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-xs font-bold">OUT</span>` :
+                let status = balance <= 0 ? `<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-xs font-bold">0.0 EMPTY</span>` :
                              (isLow ? `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-xs font-bold">⚠️ LOW</span>` : 
                              `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-xs">OK</span>`);
 
@@ -336,7 +356,7 @@
                         <td class="p-3 font-medium text-slate-800">${item.name}</td>
                         <td class="p-3 text-center text-xs text-slate-500">${item.unit}</td>
                         <td class="p-3 text-right text-slate-600">${item.beginning.toFixed(2)}</td>
-                        <td class="p-3 text-right font-bold ${isLow ? 'text-rose-600':'text-slate-900'}">${balance.toFixed(2)}</td>
+                        <td class="p-3 text-right font-bold ${balance <= 0 ? 'text-rose-600':'text-slate-900'}">${balance.toFixed(2)}</td>
                         <td class="p-3 text-center">${status}</td>
                     </tr>
                 `;
@@ -349,7 +369,7 @@
                         <td class="p-3 text-right text-emerald-700">+${item.received.toFixed(2)}</td>
                         <td class="p-3 text-right text-blue-700">-${item.issued.toFixed(2)}</td>
                         <td class="p-3 text-right text-rose-600">-${item.wastage.toFixed(2)}</td>
-                        <td class="p-3 text-right font-bold ${isLow ? 'text-rose-600':'text-slate-900'}">${balance.toFixed(2)}</td>
+                        <td class="p-3 text-right font-bold ${balance <= 0 ? 'text-rose-600':'text-slate-900'}">${balance.toFixed(2)}</td>
                         <td class="p-3 text-center">${status}</td>
                     </tr>
                 `;
