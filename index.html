@@ -3,265 +3,410 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Workshop PLC - Inventory Management System</title>
+    <title>The Workshop PLC - Enterprise Inventory System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS for Excel Reading -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
-        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .glass-card { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .gradient-border { border-image: linear-gradient(to right, #3b82f6, #8b5cf6) 1; }
     </style>
 </head>
-<body class="min-h-screen text-slate-800 pb-12">
+<body class="min-h-screen pb-12 flex flex-col">
 
-    <!-- Header / Navigation -->
-    <header class="bg-slate-900 text-white shadow-xl sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-amber-500 text-slate-900 p-2.5 rounded-xl font-bold text-xl shadow-lg">
-                    <i class="fa-solid fa-boxes-stacked"></i> TWS
+    <!-- LOGIN OVERLAY -->
+    <div id="loginScreen" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md p-8 rounded-3xl shadow-2xl space-y-6 border border-slate-700/50">
+            <div class="text-center space-y-2">
+                <div class="w-16 h-16 bg-gradient-to-tr from-amber-500 to-amber-300 rounded-2xl flex items-center justify-center text-slate-950 font-black text-2xl mx-auto shadow-lg shadow-amber-500/20">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+                <h1 class="text-2xl font-bold tracking-tight text-white">The Workshop PLC</h1>
+                <p class="text-xs text-slate-400">Inventory & Stock Control Center</p>
+            </div>
+
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Username</label>
+                    <input type="text" id="loginUser" required placeholder="Enter username" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-white">
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-wide">The Workshop PLC</h1>
-                    <p class="text-xs text-slate-400">Inventory Management System</p>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
+                    <input type="password" id="loginPass" required placeholder="••••••••" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-white">
                 </div>
-            </div>
-            <div class="flex items-center gap-2 flex-wrap">
-                <!-- Erase / Zero Out Button -->
-                <button onclick="clearAllToZero()" class="bg-rose-700 hover:bg-rose-600 text-white text-xs font-bold px-3 py-2 rounded-lg shadow border border-rose-600 flex items-center gap-1.5">
-                    <i class="fa-solid fa-trash-can"></i> Start Fresh (0.0)
+                <div id="loginError" class="text-xs text-rose-400 font-medium hidden">Invalid username or password.</div>
+                <button type="submit" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-3.5 rounded-xl text-sm shadow-lg shadow-amber-500/20 transition-all">
+                    Sign In to Portal
                 </button>
-                <button onclick="resetData()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700">
-                    <i class="fa-solid fa-rotate-right me-1"></i> Load Baseline Report
-                </button>
-                <button onclick="openModal('orderModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-3 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow">
-                    <i class="fa-solid fa-plus"></i> Log New Order
-                </button>
-                <button onclick="openModal('grnModal')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-3 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow">
-                    <i class="fa-solid fa-truck-ramp-box"></i> Record GRN
-                </button>
-            </div>
-        </div>
-        <!-- Tab Navigation Bar -->
-        <div class="bg-slate-950 px-4 border-t border-slate-800">
-            <div class="max-w-7xl mx-auto flex gap-6 overflow-x-auto text-sm">
-                <button onclick="switchTab('dashboard')" id="tabBtn-dashboard" class="py-3 font-semibold text-amber-400 border-b-2 border-amber-400 flex items-center gap-2 whitespace-nowrap">
-                    <i class="fa-solid fa-chart-pie"></i> Executive Dashboard
-                </button>
-                <button onclick="switchTab('reports')" id="tabBtn-reports" class="py-3 font-medium text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap">
-                    <i class="fa-solid fa-file-lines"></i> Monthly Reports & Orders
-                </button>
-                <button onclick="switchTab('ledger')" id="tabBtn-ledger" class="py-3 font-medium text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap">
-                    <i class="fa-solid fa-book"></i> Stock Balance Ledger
-                </button>
-                <button onclick="switchTab('activity')" id="tabBtn-activity" class="py-3 font-medium text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap">
-                    <i class="fa-solid fa-clock-rotate-left"></i> Activity & GRN Log
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
-
-        <!-- TAB 1: EXECUTIVE DASHBOARD -->
-        <div id="tab-dashboard" class="space-y-6">
-            <!-- Metrics Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="glass-card p-4 rounded-2xl border-l-4 border-emerald-500 shadow-sm">
-                    <p class="text-xs font-semibold uppercase text-slate-500">Beginning Media</p>
-                    <h3 id="statBeginning" class="text-2xl font-bold text-slate-900 mt-1">0.0</h3>
-                    <p class="text-xs text-slate-400">Total Sqm in store</p>
-                </div>
-                <div class="glass-card p-4 rounded-2xl border-l-4 border-blue-500 shadow-sm">
-                    <p class="text-xs font-semibold uppercase text-slate-500">Current Stock Balance</p>
-                    <h3 id="statCurrent" class="text-2xl font-bold text-slate-900 mt-1">0.0</h3>
-                    <p class="text-xs text-slate-400">Live Sqm / Liters balance</p>
-                </div>
-                <div class="glass-card p-4 rounded-2xl border-l-4 border-amber-500 shadow-sm">
-                    <p class="text-xs font-semibold uppercase text-slate-500">Total Ink In Store</p>
-                    <h3 id="statInk" class="text-2xl font-bold text-amber-600 mt-1">0.0 L</h3>
-                    <p class="text-xs text-slate-400">CMYK & Solvent fluids</p>
-                </div>
-                <div class="glass-card p-4 rounded-2xl border-l-4 border-rose-500 shadow-sm">
-                    <p class="text-xs font-semibold uppercase text-slate-500">Low Stock Red Flags</p>
-                    <h3 id="statRedFlags" class="text-2xl font-bold text-rose-600 mt-1">0</h3>
-                    <p class="text-xs text-rose-500">Items below minimum limit</p>
-                </div>
-            </div>
-
-            <!-- Stock Snapshot Table Preview -->
-            <div class="glass-card rounded-2xl p-5 shadow-sm">
-                <div class="flex justify-between items-center mb-4">
-                    <div>
-                        <h2 class="text-base font-bold text-slate-900">Workshop Stock Snapshot</h2>
-                        <p class="text-xs text-slate-500">Beginning + Received - Issued - Wastage = Ending Balance</p>
-                    </div>
-                    <button onclick="switchTab('ledger')" class="text-xs text-indigo-600 font-bold hover:underline">View Full Ledger →</button>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead>
-                            <tr class="border-b border-slate-200 text-slate-500 text-xs bg-slate-50">
-                                <th class="p-3">MATERIAL NAME</th>
-                                <th class="p-3 text-center">UNIT</th>
-                                <th class="p-3 text-right">BEGINNING</th>
-                                <th class="p-3 text-right">CURRENT BAL</th>
-                                <th class="p-3 text-center">STATUS</th>
-                            </tr>
-                        </thead>
-                        <tbody id="dashboardTableBody" class="divide-y divide-slate-100"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 2: MONTHLY REPORTS & ORDERS -->
-        <div id="tab-reports" class="space-y-6 hidden">
-            <div class="glass-card rounded-2xl p-5 shadow-sm">
-                <div class="flex justify-between items-center mb-4">
-                    <div>
-                        <h2 class="text-base font-bold text-slate-900">Monthly Order & Consumption Records</h2>
-                        <p class="text-xs text-slate-500">Detailed breakdown of production orders and wastage logs</p>
-                    </div>
-                    <button onclick="openModal('orderModal')" class="bg-indigo-600 text-white text-xs px-3 py-2 rounded-lg font-bold">Add Order</button>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead>
-                            <tr class="border-b border-slate-200 text-slate-500 text-xs bg-slate-50">
-                                <th class="p-3">Client / Job Name</th>
-                                <th class="p-3">Material Used</th>
-                                <th class="p-3 text-right">Issued Qty</th>
-                                <th class="p-3 text-right text-rose-600">Wastage</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ordersTableBody" class="divide-y divide-slate-100">
-                            <tr><td colspan="4" class="p-4 text-center text-xs text-slate-400">No orders logged yet. Click 'Add Order' to record production.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 3: STOCK BALANCE LEDGER -->
-        <div id="tab-ledger" class="space-y-6 hidden">
-            <div class="glass-card rounded-2xl p-5 shadow-sm">
-                <h2 class="text-base font-bold text-slate-900 mb-1">Complete Stock Ledger</h2>
-                <p class="text-xs text-slate-500 mb-4">Full ledger tracking for all roll media and printing inks</p>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead>
-                            <tr class="border-b border-slate-200 text-slate-500 text-xs bg-slate-50">
-                                <th class="p-3">Item Name</th>
-                                <th class="p-3 text-center">Unit</th>
-                                <th class="p-3 text-right">Beginning</th>
-                                <th class="p-3 text-right text-emerald-700">Received</th>
-                                <th class="p-3 text-right text-blue-700">Issued</th>
-                                <th class="p-3 text-right text-rose-600">Wastage</th>
-                                <th class="p-3 text-right font-bold">Balance</th>
-                                <th class="p-3 text-center">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="fullLedgerBody" class="divide-y divide-slate-100"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 4: ACTIVITY & GRN LOG -->
-        <div id="tab-activity" class="space-y-6 hidden">
-            <div class="glass-card rounded-2xl p-5 shadow-sm">
-                <h2 class="text-base font-bold text-slate-900 mb-1">Goods Received Note (GRN) & Activity Log</h2>
-                <p class="text-xs text-slate-500 mb-4">History of all stock replenishment deliveries</p>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead>
-                            <tr class="border-b border-slate-200 text-slate-500 text-xs bg-slate-50">
-                                <th class="p-3">Date</th>
-                                <th class="p-3">GRN Reference</th>
-                                <th class="p-3">Material / Ink Item</th>
-                                <th class="p-3 text-right">Quantity Received</th>
-                            </tr>
-                        </thead>
-                        <tbody id="grnLogBody" class="divide-y divide-slate-100">
-                            <tr><td colspan="4" class="p-4 text-center text-xs text-slate-400">No GRN deliveries recorded yet.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- GRN Modal -->
-    <div id="grnModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
-            <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-truck-ramp-box text-emerald-400 me-2"></i> Record GRN</h3>
-                <button onclick="closeModal('grnModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form onsubmit="submitGRN(event)" class="p-5 space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">ITEM *</label>
-                    <select id="grnMaterial" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none"></select>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">QUANTITY *</label>
-                        <input type="number" id="grnQty" step="0.01" required placeholder="0.00" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">DATE *</label>
-                        <input type="date" id="grnDate" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">GRN REF / SUPPLIER *</label>
-                    <input type="text" id="grnRef" required placeholder="e.g. GRN-2026-088" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none">
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeModal('grnModal')" class="px-4 py-2 text-slate-600 text-sm">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-lg shadow">Post GRN</button>
-                </div>
             </form>
+
+            <div class="pt-4 border-t border-slate-800 text-xs text-slate-500 text-center space-y-1">
+                <p>Default Admin: <span class="text-slate-300 font-mono">admin</span> / <span class="text-slate-300 font-mono">admin123</span></p>
+                <p>Operator: <span class="text-slate-300 font-mono">operator</span> / <span class="text-slate-300 font-mono">op123</span> | Viewer: <span class="text-slate-300 font-mono">viewer</span></p>
+            </div>
         </div>
     </div>
 
-    <!-- Order Modal -->
-    <div id="orderModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
-            <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-print text-amber-400 me-2"></i> Log New Order / Issue</h3>
+    <!-- MAIN APP WRAPPER -->
+    <div id="appScreen" class="hidden flex-1 flex-col">
+        <!-- Header -->
+        <header class="bg-slate-900/80 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
+            <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-slate-950 font-bold text-lg shadow-md">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-base tracking-wide text-white flex items-center gap-2">
+                            The Workshop PLC 
+                            <span id="roleBadge" class="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full font-extrabold bg-amber-500/20 text-amber-400 border border-amber-500/30">ADMIN</span>
+                        </h1>
+                        <p class="text-xs text-slate-400">Stock & Wastage Management System</p>
+                    </div>
+                </div>
+
+                <!-- Action Controls -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button id="btnExcel" onclick="openModal('excelModal')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5 shadow-md">
+                        <i class="fa-solid fa-file-excel"></i> Import Excel
+                    </button>
+                    <button id="btnOrder" onclick="openModal('orderModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5 shadow-md">
+                        <i class="fa-solid fa-plus"></i> New Order
+                    </button>
+                    <button id="btnGRN" onclick="openModal('grnModal')" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5 shadow-md">
+                        <i class="fa-solid fa-truck-ramp-box"></i> GRN Entry
+                    </button>
+                    <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3 py-2 rounded-lg border border-slate-700">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Bar -->
+            <div class="bg-slate-950 px-4 border-t border-slate-800/80">
+                <div class="max-w-7xl mx-auto flex gap-6 overflow-x-auto text-xs font-semibold">
+                    <button onclick="switchTab('dashboard')" id="tabBtn-dashboard" class="py-3 text-amber-400 border-b-2 border-amber-400 flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-chart-pie"></i> Dashboard
+                    </button>
+                    <button onclick="switchTab('ledger')" id="tabBtn-ledger" class="py-3 text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-book-open"></i> Stock Ledger
+                    </button>
+                    <button onclick="switchTab('orders')" id="tabBtn-orders" class="py-3 text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-receipt"></i> Orders & Wastage
+                    </button>
+                    <button id="tabUsersNav" onclick="switchTab('users')" class="py-3 text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-users-gear"></i> Admin & Users
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard View -->
+        <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6 flex-1">
+
+            <!-- TAB 1: DASHBOARD -->
+            <div id="tab-dashboard" class="space-y-6">
+                <!-- Stat Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-emerald-500">
+                        <p class="text-[11px] font-semibold uppercase text-slate-400">Total Media Stock</p>
+                        <h3 id="statMedia" class="text-2xl font-bold text-white mt-1">0.0</h3>
+                        <p class="text-xs text-slate-500">Square Meters (sqm)</p>
+                    </div>
+                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-amber-500">
+                        <p class="text-[11px] font-semibold uppercase text-slate-400">Total Inks & Fluids</p>
+                        <h3 id="statInk" class="text-2xl font-bold text-amber-400 mt-1">0.0 L</h3>
+                        <p class="text-xs text-slate-500">CMYK + Solvent Liquid</p>
+                    </div>
+                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-indigo-500">
+                        <p class="text-[11px] font-semibold uppercase text-slate-400">Recorded Wastage</p>
+                        <h3 id="statWastage" class="text-2xl font-bold text-indigo-400 mt-1">0.0</h3>
+                        <p id="statWastagePct" class="text-xs text-slate-500">0.0% loss rate</p>
+                    </div>
+                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-rose-500">
+                        <p class="text-[11px] font-semibold uppercase text-slate-400">Low Stock Warnings</p>
+                        <h3 id="statRedFlags" class="text-2xl font-bold text-rose-400 mt-1">0</h3>
+                        <p class="text-xs text-rose-400/80">Items need reorder</p>
+                    </div>
+                </div>
+
+                <!-- Live Inventory Snapshot Table -->
+                <div class="glass-panel rounded-2xl p-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h2 class="font-bold text-base text-white">Live Inventory Balance Snapshot</h2>
+                            <p class="text-xs text-slate-400">Calculates Balance = Beginning + GRN - Issued - Wastage</p>
+                        </div>
+                        <button onclick="switchTab('ledger')" class="text-xs font-bold text-amber-400 hover:underline">Full Ledger →</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-400 text-xs bg-slate-900/50">
+                                    <th class="p-3">ITEM DESCRIPTION</th>
+                                    <th class="p-3 text-center">UNIT</th>
+                                    <th class="p-3 text-right">BEGINNING</th>
+                                    <th class="p-3 text-right">LIVE BALANCE</th>
+                                    <th class="p-3 text-center">STATUS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashTableBody" class="divide-y divide-slate-800/60"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: FULL LEDGER -->
+            <div id="tab-ledger" class="space-y-6 hidden">
+                <div class="glass-panel rounded-2xl p-5">
+                    <h2 class="font-bold text-base text-white mb-1">Master Inventory Ledger</h2>
+                    <p class="text-xs text-slate-400 mb-4">Complete tracking across all roll banners, stickers, and inks</p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-400 text-xs bg-slate-900/50">
+                                    <th class="p-3">Item Name</th>
+                                    <th class="p-3 text-center">Unit</th>
+                                    <th class="p-3 text-right">Beginning</th>
+                                    <th class="p-3 text-right text-emerald-400">+ GRN Rec.</th>
+                                    <th class="p-3 text-right text-blue-400">- Issued</th>
+                                    <th class="p-3 text-right text-rose-400">- Wastage</th>
+                                    <th class="p-3 text-right font-bold text-white">Balance</th>
+                                    <th class="p-3 text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fullLedgerBody" class="divide-y divide-slate-800/60"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: ORDERS & WASTAGE LOG -->
+            <div id="tab-orders" class="space-y-6 hidden">
+                <div class="glass-panel rounded-2xl p-5">
+                    <h2 class="font-bold text-base text-white mb-1">Production Orders & Wastage Log</h2>
+                    <p class="text-xs text-slate-400 mb-4">Detailed calculation log of all printed jobs and off-cut losses</p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-400 text-xs bg-slate-900/50">
+                                    <th class="p-3">Client / Job Title</th>
+                                    <th class="p-3">Material Used</th>
+                                    <th class="p-3 text-right">Print Area</th>
+                                    <th class="p-3 text-right text-rose-400">Wastage Area</th>
+                                    <th class="p-3 text-right font-bold">Total Deducted</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTableBody" class="divide-y divide-slate-800/60"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: USER MANAGEMENT (ADMIN ONLY) -->
+            <div id="tab-users" class="space-y-6 hidden">
+                <div class="glass-panel rounded-2xl p-5 space-y-6">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="font-bold text-base text-white">Admin User Access Control</h2>
+                            <p class="text-xs text-slate-400">Add, remove, or change system access privileges</p>
+                        </div>
+                        <button onclick="openModal('addUserModal')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5 shadow">
+                            <i class="fa-solid fa-user-plus"></i> Add New User
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-400 text-xs bg-slate-900/50">
+                                    <th class="p-3">Username</th>
+                                    <th class="p-3 text-center">Role</th>
+                                    <th class="p-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody" class="divide-y divide-slate-800/60"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- System Reset Box -->
+                    <div class="pt-6 border-t border-slate-800/80 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h3 class="font-bold text-sm text-rose-400">System Danger Zone</h3>
+                            <p class="text-xs text-slate-400">Wipe all inventory entries or restore default report baseline</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="clearAllToZero()" class="bg-rose-900/40 hover:bg-rose-900/70 text-rose-300 border border-rose-700/50 text-xs font-bold px-3.5 py-2 rounded-lg">
+                                <i class="fa-solid fa-trash-can"></i> Zero Out All Balances
+                            </button>
+                            <button onclick="resetData()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-bold px-3.5 py-2 rounded-lg">
+                                <i class="fa-solid fa-rotate-right"></i> Reload Default Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODAL: ORDER ENTRY WITH AUTO WASTAGE CALCULATION -->
+    <div id="orderModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="glass-panel w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
+            <div class="bg-slate-900 p-4 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                    <i class="fa-solid fa-calculator text-amber-400"></i> New Order & Auto Wastage Calculator
+                </h3>
                 <button onclick="closeModal('orderModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <form onsubmit="submitOrder(event)" class="p-5 space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">ITEM *</label>
-                    <select id="orderMaterial" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none"></select>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">SELECT MATERIAL / INK *</label>
+                    <select id="orderMaterial" required onchange="calculateOrderTotals()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none focus:border-amber-500"></select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">CLIENT / PURPOSE *</label>
-                    <input type="text" id="orderClient" required placeholder="e.g. Marvless Event" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">CLIENT / JOB REFERENCE *</label>
+                    <input type="text" id="orderClient" required placeholder="e.g. Marvless Event / Customer Order" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none focus:border-amber-500">
                 </div>
+
+                <!-- Dimension Auto Calculations -->
+                <div class="grid grid-cols-3 gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 mb-1">WIDTH (m)</label>
+                        <input type="number" id="calcWidth" step="0.01" oninput="calculateOrderTotals()" placeholder="e.g. 3.0" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 mb-1">HEIGHT (m)</label>
+                        <input type="number" id="calcHeight" step="0.01" oninput="calculateOrderTotals()" placeholder="e.g. 4.0" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 mb-1">QTY (Pcs)</label>
+                        <input type="number" id="calcQty" value="1" min="1" oninput="calculateOrderTotals()" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white">
+                    </div>
+                </div>
+
+                <!-- Automated Results -->
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">ISSUED QTY *</label>
-                        <input type="number" id="orderQty" step="0.01" required placeholder="0.00" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none">
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">PRINTED AREA (Sqm/L) *</label>
+                        <input type="number" id="orderQty" step="0.01" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">WASTAGE QTY</label>
-                        <input type="number" id="orderWastage" step="0.01" placeholder="0.00" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none">
+                        <label class="block text-xs font-semibold text-rose-400 mb-1">ESTIMATED WASTAGE (Sqm/L)</label>
+                        <input type="number" id="orderWastage" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-rose-900/50 rounded-lg p-2.5 text-sm text-rose-300 outline-none">
                     </div>
                 </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeModal('orderModal')" class="px-4 py-2 text-slate-600 text-sm">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg shadow">Save Order</button>
+
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                    <button type="button" onclick="closeModal('orderModal')" class="px-4 py-2 text-slate-400 text-xs font-semibold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow">Deduct Stock & Post</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- MODAL: EXCEL IMPORT -->
+    <div id="excelModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="glass-panel w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
+            <div class="bg-slate-900 p-4 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                    <i class="fa-solid fa-file-excel text-emerald-400"></i> Import Inventory Excel / CSV
+                </h3>
+                <button onclick="closeModal('excelModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5 space-y-4">
+                <p class="text-xs text-slate-400">Select an Excel spreadsheet (`.xlsx`, `.xls`) or `.csv` file to automatically populate stock data into the system.</p>
+                
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="w-full text-xs text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500">
+
+                <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                    <p class="font-bold text-amber-400">Expected Column Names:</p>
+                    <p>• <span class="font-mono text-white">Item Name</span> / <span class="font-mono text-white">Description</span></p>
+                    <p>• <span class="font-mono text-white">Beginning Stock</span> / <span class="font-mono text-white">Quantity</span></p>
+                    <p>• <span class="font-mono text-white">Unit</span> (Sqm or Liters)</p>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('excelModal')" class="px-4 py-2 text-slate-400 text-xs font-semibold">Cancel</button>
+                    <button type="button" onclick="processExcelUpload()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow">Upload & Process</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: GRN ENTRY -->
+    <div id="grnModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="glass-panel w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
+            <div class="bg-slate-900 p-4 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="font-bold text-sm text-white"><i class="fa-solid fa-truck-ramp-box text-blue-400 me-2"></i> Record Goods Received Note (GRN)</h3>
+                <button onclick="closeModal('grnModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="submitGRN(event)" class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">SELECT ITEM *</label>
+                    <select id="grnMaterial" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">QUANTITY RECEIVED *</label>
+                        <input type="number" id="grnQty" step="0.01" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">DELIVERY DATE *</label>
+                        <input type="date" id="grnDate" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">GRN # / SUPPLIER REF *</label>
+                    <input type="text" id="grnRef" required placeholder="e.g. GRN-2026-099" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
+                </div>
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                    <button type="button" onclick="closeModal('grnModal')" class="px-4 py-2 text-slate-400 text-xs font-semibold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow">Post GRN Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD USER -->
+    <div id="addUserModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="glass-panel w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
+            <div class="bg-slate-900 p-4 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="font-bold text-sm text-white"><i class="fa-solid fa-user-plus text-amber-400 me-2"></i> Create User Account</h3>
+                <button onclick="closeModal('addUserModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="submitNewUser(event)" class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">USERNAME *</label>
+                    <input type="text" id="newUsername" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">PASSWORD *</label>
+                    <input type="password" id="newPassword" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">ROLE *</label>
+                    <select id="newRole" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
+                        <option value="operator">Operator (Orders & GRN)</option>
+                        <option value="viewer">Viewer (Read-Only)</option>
+                        <option value="admin">Administrator (Full Access)</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                    <button type="button" onclick="closeModal('addUserModal')" class="px-4 py-2 text-slate-400 text-xs font-semibold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg shadow">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SYSTEM SCRIPT -->
     <script>
+        // Baseline Inventory Items
         const defaultStock = [
             { id: 1, name: "White Back banner 3.2mw", category: "Media", unit: "Sqm", beginning: 1113.06, received: 0, issued: 194.9, wastage: 22.12, minLimit: 100 },
             { id: 2, name: "White Back banner 2.1mw", category: "Media", unit: "Sqm", beginning: 157.6, received: 0, issued: 33.8, wastage: 6.31, minLimit: 30 },
@@ -279,185 +424,328 @@
             { id: 14, name: "Flushing Solvent Liquid", category: "Ink", unit: "Liters", beginning: 20.0, received: 0.0, issued: 3.0, wastage: 0.5, minLimit: 5.0 }
         ];
 
-        let stockData = JSON.parse(localStorage.getItem('tws_master_v3')) || defaultStock;
-        let ordersData = JSON.parse(localStorage.getItem('tws_orders_v3')) || [];
-        let grnLogData = JSON.parse(localStorage.getItem('tws_grn_v3')) || [];
+        const defaultUsers = [
+            { username: "admin", password: "admin123", role: "admin" },
+            { username: "operator", password: "op123", role: "operator" },
+            { username: "viewer", password: "viewer123", role: "viewer" }
+        ];
 
-        function saveData() {
-            localStorage.setItem('tws_master_v3', JSON.stringify(stockData));
-            localStorage.setItem('tws_orders_v3', JSON.stringify(ordersData));
-            localStorage.setItem('tws_grn_v3', JSON.stringify(grnLogData));
+        // System State
+        let currentUser = JSON.parse(localStorage.getItem('tws_user_session')) || null;
+        let usersData = JSON.parse(localStorage.getItem('tws_users_v4')) || defaultUsers;
+        let stockData = JSON.parse(localStorage.getItem('tws_stock_v4')) || defaultStock;
+        let ordersData = JSON.parse(localStorage.getItem('tws_orders_v4')) || [];
+
+        function saveState() {
+            localStorage.setItem('tws_users_v4', JSON.stringify(usersData));
+            localStorage.setItem('tws_stock_v4', JSON.stringify(stockData));
+            localStorage.setItem('tws_orders_v4', JSON.stringify(ordersData));
         }
 
-        // CLEAR ALL DATA TO ZERO (0.0)
-        function clearAllToZero() {
-            if (confirm("Are you sure you want to erase ALL stock balances and start from 0.0?")) {
-                stockData = stockData.map(item => ({
-                    ...item,
-                    beginning: 0,
-                    received: 0,
-                    issued: 0,
-                    wastage: 0
-                }));
-                ordersData = [];
-                grnLogData = [];
-                saveData();
-                renderAll();
+        // Authentication Handler
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('loginUser').value.trim();
+            const p = document.getElementById('loginPass').value.trim();
+
+            const found = usersData.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p);
+            if (found) {
+                currentUser = found;
+                localStorage.setItem('tws_user_session', JSON.stringify(currentUser));
+                document.getElementById('loginError').classList.add('hidden');
+                initUI();
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
             }
         }
 
-        // RESET BACK TO DEFAULT MONTHLY REPORT DATA
-        function resetData() {
-            if(confirm("Reset all stock data back to default monthly report baseline?")) {
-                localStorage.removeItem('tws_master_v3');
-                localStorage.removeItem('tws_orders_v3');
-                localStorage.removeItem('tws_grn_v3');
-                location.reload();
-            }
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('tws_user_session');
+            document.getElementById('appScreen').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+
+        // Initialize UI Permissions
+        function initUI() {
+            if (!currentUser) return;
+
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('appScreen').classList.remove('hidden');
+            document.getElementById('appScreen').classList.add('flex');
+
+            document.getElementById('roleBadge').innerText = currentUser.role.toUpperCase();
+
+            // Permissions setup
+            const isAdmin = currentUser.role === 'admin';
+            const isViewer = currentUser.role === 'viewer';
+
+            document.getElementById('btnExcel').style.display = isAdmin ? 'inline-flex' : 'none';
+            document.getElementById('btnOrder').style.display = !isViewer ? 'inline-flex' : 'none';
+            document.getElementById('btnGRN').style.display = !isViewer ? 'inline-flex' : 'none';
+            document.getElementById('tabUsersNav').style.display = isAdmin ? 'inline-flex' : 'none';
+
+            populateDropdowns();
+            renderAll();
         }
 
         function switchTab(tabId) {
-            ['dashboard', 'reports', 'ledger', 'activity'].forEach(id => {
-                document.getElementById('tab-' + id).classList.add('hidden');
-                document.getElementById('tabBtn-' + id).className = "py-3 font-medium text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap";
+            ['dashboard', 'ledger', 'orders', 'users'].forEach(id => {
+                const el = document.getElementById('tab-' + id);
+                const btn = document.getElementById('tabBtn-' + id);
+                if (el) el.classList.add('hidden');
+                if (btn) btn.className = "py-3 text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap";
             });
+
             document.getElementById('tab-' + tabId).classList.remove('hidden');
-            document.getElementById('tabBtn-' + tabId).className = "py-3 font-semibold text-amber-400 border-b-2 border-amber-400 flex items-center gap-2 whitespace-nowrap";
+            document.getElementById('tabBtn-' + tabId).className = "py-3 text-amber-400 border-b-2 border-amber-400 flex items-center gap-2 whitespace-nowrap";
         }
 
-        function populateSelects() {
-            let html = stockData.map(i => `<option value="${i.id}">${i.name} (${i.unit})</option>`).join('');
-            document.getElementById('grnMaterial').innerHTML = html;
+        function populateDropdowns() {
+            const html = stockData.map(i => `<option value="${i.id}">${i.name} (${i.unit})</option>`).join('');
             document.getElementById('orderMaterial').innerHTML = html;
+            document.getElementById('grnMaterial').innerHTML = html;
+        }
+
+        // Auto-Calculation for Orders & Wastage
+        function calculateOrderTotals() {
+            const id = parseInt(document.getElementById('orderMaterial').value);
+            const w = parseFloat(document.getElementById('calcWidth').value) || 0;
+            const h = parseFloat(document.getElementById('calcHeight').value) || 0;
+            const qty = parseInt(document.getElementById('calcQty').value) || 1;
+
+            const mat = stockData.find(m => m.id === id);
+
+            if (w > 0 && h > 0) {
+                const printedArea = (w * h * qty);
+                document.getElementById('orderQty').value = printedArea.toFixed(2);
+
+                // Auto wastage calculation (Machine off-cut percentage rule ~7-10%)
+                let estWastage = printedArea * 0.08; 
+                document.getElementById('orderWastage').value = estWastage.toFixed(2);
+            }
         }
 
         function renderAll() {
-            let totBeg = 0, totCur = 0, totInk = 0, redFlags = 0;
+            let totMedia = 0, totInk = 0, totWastage = 0, totIssued = 0, redFlags = 0;
             let dashHtml = '', ledgerHtml = '';
-            
+
             stockData.forEach(item => {
-                const balance = item.beginning + item.received - item.issued - item.wastage;
-                if(item.category === 'Media') {
-                    totBeg += item.beginning;
-                    totCur += balance;
+                const bal = item.beginning + item.received - item.issued - item.wastage;
+
+                if (item.category === 'Media') {
+                    totMedia += bal;
+                    totWastage += item.wastage;
+                    totIssued += item.issued;
                 } else {
-                    totInk += balance;
+                    totInk += bal;
                 }
 
-                const isLow = balance <= item.minLimit;
-                if(isLow && balance > 0) redFlags++;
+                const isLow = bal <= item.minLimit;
+                if (isLow) redFlags++;
 
-                let status = balance <= 0 ? `<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-xs font-bold">0.0 EMPTY</span>` :
-                             (isLow ? `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-xs font-bold">⚠️ LOW</span>` : 
-                             `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-xs">OK</span>`);
+                const status = bal <= 0 
+                    ? `<span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded text-[10px] font-bold">0.0 OUT</span>` 
+                    : (isLow 
+                        ? `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-bold">⚠️ LOW</span>` 
+                        : `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-semibold">HEALTHY</span>`);
 
                 dashHtml += `
-                    <tr class="hover:bg-slate-50">
-                        <td class="p-3 font-medium text-slate-800">${item.name}</td>
-                        <td class="p-3 text-center text-xs text-slate-500">${item.unit}</td>
-                        <td class="p-3 text-right text-slate-600">${item.beginning.toFixed(2)}</td>
-                        <td class="p-3 text-right font-bold ${balance <= 0 ? 'text-rose-600':'text-slate-900'}">${balance.toFixed(2)}</td>
+                    <tr class="hover:bg-slate-800/40">
+                        <td class="p-3 font-semibold text-white">${item.name}</td>
+                        <td class="p-3 text-center text-xs text-slate-400">${item.unit}</td>
+                        <td class="p-3 text-right text-slate-400">${item.beginning.toFixed(2)}</td>
+                        <td class="p-3 text-right font-bold ${bal <= item.minLimit ? 'text-rose-400':'text-amber-400'}">${bal.toFixed(2)}</td>
                         <td class="p-3 text-center">${status}</td>
                     </tr>
                 `;
 
                 ledgerHtml += `
-                    <tr class="hover:bg-slate-50 ${item.category === 'Ink' ? 'bg-amber-50/30':''}">
-                        <td class="p-3 font-medium text-slate-800">${item.name}</td>
-                        <td class="p-3 text-center text-xs text-slate-500">${item.unit}</td>
-                        <td class="p-3 text-right text-slate-600">${item.beginning.toFixed(2)}</td>
-                        <td class="p-3 text-right text-emerald-700">+${item.received.toFixed(2)}</td>
-                        <td class="p-3 text-right text-blue-700">-${item.issued.toFixed(2)}</td>
-                        <td class="p-3 text-right text-rose-600">-${item.wastage.toFixed(2)}</td>
-                        <td class="p-3 text-right font-bold ${balance <= 0 ? 'text-rose-600':'text-slate-900'}">${balance.toFixed(2)}</td>
+                    <tr class="hover:bg-slate-800/40">
+                        <td class="p-3 font-semibold text-white">${item.name}</td>
+                        <td class="p-3 text-center text-xs text-slate-400">${item.unit}</td>
+                        <td class="p-3 text-right text-slate-400">${item.beginning.toFixed(2)}</td>
+                        <td class="p-3 text-right text-emerald-400">+${item.received.toFixed(2)}</td>
+                        <td class="p-3 text-right text-blue-400">-${item.issued.toFixed(2)}</td>
+                        <td class="p-3 text-right text-rose-400">-${item.wastage.toFixed(2)}</td>
+                        <td class="p-3 text-right font-bold text-white">${bal.toFixed(2)}</td>
                         <td class="p-3 text-center">${status}</td>
                     </tr>
                 `;
             });
 
-            document.getElementById('dashboardTableBody').innerHTML = dashHtml;
+            document.getElementById('dashTableBody').innerHTML = dashHtml;
             document.getElementById('fullLedgerBody').innerHTML = ledgerHtml;
 
-            // Metrics
-            document.getElementById('statBeginning').innerText = totBeg.toFixed(2);
-            document.getElementById('statCurrent').innerText = totCur.toFixed(2);
+            // Update Header Stats
+            document.getElementById('statMedia').innerText = totMedia.toFixed(2);
             document.getElementById('statInk').innerText = totInk.toFixed(1) + " L";
+            document.getElementById('statWastage').innerText = totWastage.toFixed(2);
             document.getElementById('statRedFlags').innerText = redFlags;
 
+            const lossRate = totIssued > 0 ? ((totWastage / totIssued) * 100).toFixed(1) : "0.0";
+            document.getElementById('statWastagePct').innerText = `${lossRate}% loss rate`;
+
             // Orders Table
-            let ordHtml = ordersData.length ? ordersData.map(o => `
-                <tr class="hover:bg-slate-50">
-                    <td class="p-3 font-medium">${o.client}</td>
-                    <td class="p-3 text-slate-600">${o.materialName}</td>
-                    <td class="p-3 text-right text-blue-700">-${o.qty}</td>
-                    <td class="p-3 text-right text-rose-600">-${o.wastage}</td>
+            document.getElementById('ordersTableBody').innerHTML = ordersData.length ? ordersData.map(o => `
+                <tr class="hover:bg-slate-800/40">
+                    <td class="p-3 font-semibold text-white">${o.client}</td>
+                    <td class="p-3 text-slate-300">${o.materialName}</td>
+                    <td class="p-3 text-right text-blue-400">${o.qty.toFixed(2)}</td>
+                    <td class="p-3 text-right text-rose-400">${o.wastage.toFixed(2)}</td>
+                    <td class="p-3 text-right font-bold text-amber-400">${(o.qty + o.wastage).toFixed(2)}</td>
                 </tr>
-            `).join('') : `<tr><td colspan="4" class="p-4 text-center text-xs text-slate-400">No orders logged yet.</td></tr>`;
-            document.getElementById('ordersTableBody').innerHTML = ordHtml;
+            `).join('') : `<tr><td colspan="5" class="p-4 text-center text-xs text-slate-500">No orders logged yet.</td></tr>`;
 
-            // GRN Log Table
-            let grnHtml = grnLogData.length ? grnLogData.map(g => `
-                <tr class="hover:bg-slate-50">
-                    <td class="p-3 text-slate-600">${g.date}</td>
-                    <td class="p-3 font-medium text-slate-900">${g.ref}</td>
-                    <td class="p-3 text-slate-700">${g.materialName}</td>
-                    <td class="p-3 text-right font-bold text-emerald-700">+${g.qty}</td>
+            // Users Table
+            document.getElementById('usersTableBody').innerHTML = usersData.map(u => `
+                <tr class="hover:bg-slate-800/40">
+                    <td class="p-3 font-mono text-white">${u.username}</td>
+                    <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-slate-800 text-amber-400">${u.role}</span></td>
+                    <td class="p-3 text-right">
+                        ${u.username !== 'admin' ? `<button onclick="deleteUser('${u.username}')" class="text-xs text-rose-400 hover:underline"><i class="fa-solid fa-trash"></i></button>` : `<span class="text-xs text-slate-600">System Admin</span>`}
+                    </td>
                 </tr>
-            `).join('') : `<tr><td colspan="4" class="p-4 text-center text-xs text-slate-400">No GRN deliveries recorded yet.</td></tr>`;
-            document.getElementById('grnLogBody').innerHTML = grnHtml;
+            `).join('');
         }
 
-        function submitGRN(e) {
-            e.preventDefault();
-            const id = parseInt(document.getElementById('grnMaterial').value);
-            const qty = parseFloat(document.getElementById('grnQty').value);
-            const date = document.getElementById('grnDate').value;
-            const ref = document.getElementById('grnRef').value;
-
-            const mat = stockData.find(m => m.id === id);
-            if(mat) {
-                mat.received += qty;
-                grnLogData.unshift({ date, ref, materialName: mat.name, qty });
-                saveData();
-                renderAll();
-                closeModal('grnModal');
-                e.target.reset();
-            }
-        }
-
+        // Submit New Order
         function submitOrder(e) {
             e.preventDefault();
             const id = parseInt(document.getElementById('orderMaterial').value);
-            const qty = parseFloat(document.getElementById('orderQty').value);
+            const client = document.getElementById('orderClient').value.trim();
+            const qty = parseFloat(document.getElementById('orderQty').value) || 0;
             const wastage = parseFloat(document.getElementById('orderWastage').value) || 0;
-            const client = document.getElementById('orderClient').value;
 
             const mat = stockData.find(m => m.id === id);
-            if(mat) {
+            if (mat) {
                 mat.issued += qty;
                 mat.wastage += wastage;
                 ordersData.unshift({ client, materialName: mat.name, qty, wastage });
-                saveData();
+                saveState();
                 renderAll();
                 closeModal('orderModal');
                 e.target.reset();
             }
         }
 
-        function openModal(id) {
-            document.getElementById(id).classList.remove('hidden');
-            document.getElementById(id).classList.add('flex');
-            document.getElementById('grnDate').valueAsDate = new Date();
+        // Submit GRN
+        function submitGRN(e) {
+            e.preventDefault();
+            const id = parseInt(document.getElementById('grnMaterial').value);
+            const qty = parseFloat(document.getElementById('grnQty').value) || 0;
+
+            const mat = stockData.find(m => m.id === id);
+            if (mat) {
+                mat.received += qty;
+                saveState();
+                renderAll();
+                closeModal('grnModal');
+                e.target.reset();
+            }
         }
 
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-            document.getElementById(id).classList.remove('flex');
+        // Process Excel Upload
+        function processExcelUpload() {
+            const fileInput = document.getElementById('excelFileInput');
+            if (!fileInput.files.length) return alert('Please select an Excel file first.');
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet);
+
+                let addedCount = 0;
+                rows.forEach(r => {
+                    const name = r['Item Name'] || r['Item Description'] || r['Description'] || r['ITEMS DESCRIPTION'];
+                    const qty = parseFloat(r['Beginning Stock'] || r['Quantity'] || r['QUANTITY'] || 0);
+                    const unit = r['Unit'] || (name && name.toLowerCase().includes('ink') ? 'Liters' : 'Sqm');
+
+                    if (name) {
+                        const existing = stockData.find(s => s.name.toLowerCase() === name.toLowerCase());
+                        if (existing) {
+                            existing.beginning += qty;
+                        } else {
+                            stockData.push({
+                                id: Date.now() + Math.floor(Math.random() * 1000),
+                                name: name,
+                                category: unit.toLowerCase().includes('liter') ? 'Ink' : 'Media',
+                                unit: unit,
+                                beginning: qty,
+                                received: 0,
+                                issued: 0,
+                                wastage: 0,
+                                minLimit: 10
+                            });
+                        }
+                        addedCount++;
+                    }
+                });
+
+                saveState();
+                populateDropdowns();
+                renderAll();
+                closeModal('excelModal');
+                alert(`Successfully processed ${addedCount} items from Excel!`);
+            };
+
+            reader.readAsArrayBuffer(file);
         }
 
-        window.onload = function() {
-            populateSelects();
+        // User Management
+        function submitNewUser(e) {
+            e.preventDefault();
+            const username = document.getElementById('newUsername').value.trim();
+            const password = document.getElementById('newPassword').value.trim();
+            const role = document.getElementById('newRole').value;
+
+            if (usersData.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                return alert('Username already exists!');
+            }
+
+            usersData.push({ username, password, role });
+            saveState();
             renderAll();
+            closeModal('addUserModal');
+            e.target.reset();
+        }
+
+        function deleteUser(u) {
+            if (confirm(`Remove user ${u}?`)) {
+                usersData = usersData.filter(x => x.username !== u);
+                saveState();
+                renderAll();
+            }
+        }
+
+        function clearAllToZero() {
+            if (confirm("Reset ALL stock balances to 0.0?")) {
+                stockData = stockData.map(item => ({ ...item, beginning: 0, received: 0, issued: 0, wastage: 0 }));
+                ordersData = [];
+                saveState();
+                renderAll();
+            }
+        }
+
+        function resetData() {
+            if (confirm("Restore original report defaults?")) {
+                stockData = defaultStock;
+                ordersData = [];
+                saveState();
+                renderAll();
+            }
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
+
+        // Initialize Session on Page Load
+        window.onload = function() {
+            if (currentUser) initUI();
         };
     </script>
 </body>
