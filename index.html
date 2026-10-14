@@ -116,7 +116,7 @@
   <h3 class="font-bold">Record GRN</h3>
   <div><label class="lbl">ITEM *</label><select id="gMat" class="in" required></select></div>
   <div class="grid grid-cols-2 gap-2"><div><label class="lbl">ROLLS ADDED</label><input id="gRolls" type="number" min="0" value="0" class="in"></div>
-    <div><label class="lbl">QTY (SQM / L) *</label><input id="gQty" type="number" step="0.01" min="0.01" required class="in"></div></div>
+    <div><label class="lbl">QTY (SQM / L) *</label><input id="gQty" type="number" step="any" min="0.01" required class="in"></div></div>
   <div class="flex justify-end gap-2 pt-2 border-t border-slate-800"><button type="button" onclick="closeM('mGrn')" class="text-xs text-slate-400 px-3">Cancel</button><button class="btn bg-blue-600">Add Stock</button></div></form></div>
 
 <div id="mUser" class="modal hidden"><form onsubmit="addUser(event)" class="glass w-full max-w-md space-y-3">
@@ -283,7 +283,7 @@ function renderAll() {
     const v = o.status === 'void';
     return `<tr class="hover:bg-slate-800/40 ${v ? 'line-through opacity-50' : ''}">
     <td class="text-xs text-slate-400">${esc(o.ymd || o.date)}</td><td class="font-semibold">${esc(o.lpo || o.client)}</td><td>${esc(o.lpo ? o.client : '')}</td><td>${esc(o.materialName)}</td>
-    <td class="text-blue-400">${o.qty.toFixed(2)}</td><td class="text-rose-400">${o.wastage.toFixed(2)}</td><td class="font-bold text-amber-400">${(o.qty + o.wastage).toFixed(2)}</td>
+    <td class="text-blue-400">${o.qty.toFixed(3)}</td><td class="text-rose-400">${o.wastage.toFixed(3)}</td><td class="font-bold text-amber-400">${(o.qty + o.wastage).toFixed(3)}</td>
     <td class="text-center">${o.rollsEnded ? '🔚 ' + o.rollsEnded : '-'}</td>
     <td><span class="tag ${v ? 'text-rose-400 border-rose-500/30' : 'text-emerald-400 border-emerald-500/30'}">${o.status.toUpperCase()}</span></td><td class="text-xs">${esc(o.user)}</td>
     <td>${can('void') && first ? `<button onclick="voidLpo(${o.id})" class="text-xs text-rose-400 hover:underline">Void LPO</button>` : ''}</td></tr>`;
@@ -319,9 +319,9 @@ function wasteFor(m, w, h, q, area) {
   if (m.category === 'Media' && R > 0 && w > 0 && h > 0) {
     let best = null;
     [[w, h], [h, w]].forEach(([across, len]) => { if (across <= R) { const x = (R - across) * len * q; if (best === null || x < best) best = x; } });
-    if (best !== null) return +best.toFixed(2);
+    if (best !== null) return +best.toFixed(4);
   }
-  return +(area * wpct / 100).toFixed(2);
+  return +(area * wpct / 100).toFixed(4);
 }
 /* ----- roll tracking: one roll = roll width x roll length (default 50 m). openUsed = Sqm already used from the open roll ----- */
 const sprOf = m => m.category === 'Media' ? rollWidth(m) * (m.rollLen || 50) : 0;
@@ -356,11 +356,11 @@ function addLine() {
   const n = ++lineN, d = document.createElement('div');
   d.id = 'ln' + n; d.className = 'grid grid-cols-6 md:grid-cols-12 gap-1 items-end bg-slate-900/60 p-2 rounded-lg';
   d.innerHTML = `<div class="col-span-6 md:col-span-4"><label class="lbl">MATERIAL / INK</label><select data-f="mat" class="in" onchange="calcLine(${n})">${matOpts()}</select></div>
-    <div class="col-span-2 md:col-span-1"><label class="lbl">W (m)</label><input data-f="w" type="number" step="0.01" min="0" oninput="calcLine(${n})" class="in"></div>
-    <div class="col-span-2 md:col-span-1"><label class="lbl">H (m)</label><input data-f="h" type="number" step="0.01" min="0" oninput="calcLine(${n})" class="in"></div>
+    <div class="col-span-2 md:col-span-1"><label class="lbl">W (m)</label><input data-f="w" type="number" step="any" min="0" oninput="calcLine(${n})" class="in"></div>
+    <div class="col-span-2 md:col-span-1"><label class="lbl">H (m)</label><input data-f="h" type="number" step="any" min="0" oninput="calcLine(${n})" class="in"></div>
     <div class="col-span-2 md:col-span-1"><label class="lbl">PCS</label><input data-f="pcs" type="number" min="1" value="1" oninput="calcLine(${n})" class="in"></div>
-    <div class="col-span-3 md:col-span-2"><label class="lbl">AREA / LITERS</label><input data-f="area" type="number" step="0.01" min="0" oninput="calcLine(${n})" class="in"></div>
-    <div class="col-span-2 md:col-span-2"><label class="lbl text-rose-400">WASTAGE</label><input data-f="waste" type="number" step="0.01" min="0" oninput="sumLines()" class="in"></div>
+    <div class="col-span-3 md:col-span-2"><label class="lbl">AREA / LITERS</label><input data-f="area" type="number" step="any" min="0" oninput="calcLine(${n})" class="in"></div>
+    <div class="col-span-2 md:col-span-2"><label class="lbl text-rose-400">WASTAGE</label><input data-f="waste" type="number" step="any" min="0" oninput="sumLines()" class="in"></div>
     <div class="col-span-1 text-center"><button type="button" title="Remove line" onclick="document.getElementById('ln${n}').remove();sumLines()" class="text-rose-400 p-2">✕</button></div>
     <p data-f="hint" class="col-span-6 md:col-span-12 text-xs text-amber-400"></p>`;
   $('oLines').appendChild(d); calcLine(n);
@@ -368,9 +368,9 @@ function addLine() {
 function calcLine(n) {
   const g = f => lf(n, f), m = stock.find(x => x.id === parseInt(g('mat').value));
   const w = parseFloat(g('w').value) || 0, h = parseFloat(g('h').value) || 0, q = parseInt(g('pcs').value) || 1;
-  if (w > 0 && h > 0) g('area').value = (w * h * q).toFixed(2);
+  if (w > 0 && h > 0) g('area').value = +(w * h * q).toFixed(4);
   const a = parseFloat(g('area').value) || 0;
-  g('waste').value = a > 0 && m ? wasteFor(m, w, h, q, a).toFixed(2) : '';
+  g('waste').value = a > 0 && m ? wasteFor(m, w, h, q, a) : '';
   const R = m ? rollWidth(m) : 0;
   g('hint').textContent = R ? `Roll ${R}m wide: wastage = (${R} − width) × height × pcs` : `No roll width: wastage = ${wpct}% of area`;
   sumLines();
@@ -460,7 +460,7 @@ function exportReport() {
   const r = lastReport, wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ Month: r.mo, 'LPOs done': r.nLpo, 'Order lines': r.lines }]), 'Summary');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(r.per.map(x => ({ Category: x.cat, Item: x.name, 'Order lines': x.lines, Printed: +x.area.toFixed(2), Wastage: +x.waste.toFixed(2), 'Total used': +x.total.toFixed(2), 'Rolls ended': x.ended, Received: +x.rec.toFixed(2) }))), 'By item');
-  XLSX.writeFile(wb, `Monthly_Report_${r.mo}.xlsx`); logAudit('EXPORT', 'Monthly report ' + r.mo); save();
+  if (!downloadWb(wb, `Monthly_Report_${r.mo}.xlsx`)) return; logAudit('EXPORT', 'Monthly report ' + r.mo); save();
 }
 
 function submitGRN(e) {
@@ -540,6 +540,19 @@ function resetData() {
   stock = clone(DEFAULT_STOCK); orders = []; grns = []; logAudit('RESET', 'Defaults restored'); save(); renderAll();
 }
 
+/* ---------- DOWNLOAD HELPER ---------- */
+function downloadWb(wb, name) {
+  if (!window.XLSX) { alert('The Excel library did not load. Connect to the internet and reload the page (Ctrl+F5).'); return false; }
+  try {
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    return true;
+  } catch (err) { alert('Export failed: ' + err.message); return false; }
+}
+
 /* ---------- EXPORT ---------- */
 function exportXlsx() {
   if (!guard('export')) return;
@@ -549,7 +562,7 @@ function exportXlsx() {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(orders.map(({ id, materialId, ...r }) => r)), 'Orders');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(grns), 'GRN');
   if (can('audit')) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(audit), 'Audit');
-  XLSX.writeFile(wb, `Workshop_Stock_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  if (!downloadWb(wb, `Workshop_Stock_${new Date().toISOString().slice(0, 10)}.xlsx`)) return;
   logAudit('EXPORT', 'Excel export'); save(); renderAll();
 }
 
@@ -641,7 +654,7 @@ function downloadTemplate() {
     { 'Date': '2026-10-13', 'LPO No': 'EXAMPLE-LPO-1', 'Client': 'Example Client', 'Material / Ink': a, 'Width (m)': 3, 'Height (m)': 5, 'Pcs': 1, 'Manual Qty (L)': '', 'Status': 'Active' },
     { 'Date': '2026-10-13', 'LPO No': 'EXAMPLE-LPO-1', 'Client': 'Example Client', 'Material / Ink': b, 'Width (m)': '', 'Height (m)': '', 'Pcs': '', 'Manual Qty (L)': 0.5, 'Status': 'Active' }]), 'Orders');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ 'Date': '2026-10-13', 'GRN No': 'EXAMPLE-001', 'Item': a, 'Rolls Added': 1, 'Qty (Sqm / L)': 100 }]), 'GRN');
-  XLSX.writeFile(wb, 'Import_Template.xlsx');
+  if (!downloadWb(wb, 'Import_Template.xlsx')) return;
 }
 
 window.onload = boot;
