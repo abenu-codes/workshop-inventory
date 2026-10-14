@@ -1,649 +1,650 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Workshop PLC - Enterprise Admin Inventory & LPO System</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: #f8fafc; }
-        .glass-panel { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Workshop PLC - Inventory & LPO System</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style type="text/tailwindcss">
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f172a;color:#f8fafc}
+  .glass{background:rgba(30,41,59,.8);border:1px solid rgba(255,255,255,.08);border-radius:1rem;padding:1.25rem}
+  .in{@apply w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none focus:border-amber-500}
+  .lbl{@apply block text-xs font-semibold text-slate-400 mb-1}
+  .btn{@apply text-xs font-bold px-3.5 py-2.5 rounded-lg shadow text-white}
+  th{@apply p-3 text-xs text-slate-400 bg-slate-900/50 text-left}
+  td{@apply p-3}
+  .modal{@apply fixed inset-0 bg-slate-950/80 items-center justify-center p-4 z-50}
+  .tag{@apply px-2 py-0.5 rounded text-[10px] font-bold border}
+</style>
 </head>
-<body class="min-h-screen pb-12 flex flex-col">
+<body class="min-h-screen pb-12">
 
-    <!-- LOGIN SCREEN -->
-    <div id="loginScreen" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-md p-8 rounded-3xl shadow-2xl space-y-6 border border-slate-700/50">
-            <div class="text-center space-y-2">
-                <div class="w-16 h-16 bg-gradient-to-tr from-amber-500 to-amber-300 rounded-2xl flex items-center justify-center text-slate-950 font-black text-2xl mx-auto shadow-lg shadow-amber-500/20">
-                    <i class="fa-solid fa-boxes-stacked"></i>
-                </div>
-                <h1 class="text-2xl font-bold tracking-tight text-white">The Workshop PLC</h1>
-                <p class="text-xs text-slate-400">Enterprise Inventory & Admin Control Center</p>
-            </div>
+<!-- LOGIN -->
+<div id="login" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4">
+  <form onsubmit="doLogin(event)" class="glass w-full max-w-sm space-y-4">
+    <div class="text-center"><div class="w-14 h-14 bg-amber-500 rounded-2xl flex items-center justify-center text-slate-950 text-2xl mx-auto"><i class="fa-solid fa-boxes-stacked"></i></div>
+    <h1 class="text-xl font-bold mt-2">The Workshop PLC</h1><p class="text-xs text-slate-400">Inventory & LPO Control Center</p></div>
+    <div><label class="lbl">USERNAME</label><input id="lu" class="in" required autocomplete="username"></div>
+    <div><label class="lbl">PASSWORD</label><input id="lp" type="password" class="in" required autocomplete="current-password"></div>
+    <p id="lerr" class="text-xs text-rose-400 hidden">Invalid credentials.</p>
+    <button class="btn bg-amber-500 text-slate-950 w-full py-3">Sign In</button>
+  </form>
+</div>
 
-            <form onsubmit="handleLogin(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Username</label>
-                    <input type="text" id="loginUser" required placeholder="admin" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-white">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
-                    <input type="password" id="loginPass" required placeholder="••••••••" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-white">
-                </div>
-                <div id="loginError" class="text-xs text-rose-400 font-medium hidden">Invalid credentials.</div>
-                <button type="submit" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-bold py-3.5 rounded-xl text-sm shadow-lg shadow-amber-500/20 transition-all">
-                    Sign In to Portal
-                </button>
-            </form>
-            <div class="pt-4 border-t border-slate-800 text-xs text-slate-500 text-center space-y-1">
-                <p>Default Admin: <span class="text-slate-300 font-mono">admin</span> / <span class="text-slate-300 font-mono">admin123</span></p>
-                <p>Operator: <span class="text-slate-300 font-mono">operator</span> / <span class="text-slate-300 font-mono">op123</span></p>
-            </div>
-        </div>
+<!-- APP -->
+<div id="app" class="hidden">
+  <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+      <div class="flex items-center gap-3"><div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-slate-950"><i class="fa-solid fa-boxes-stacked"></i></div>
+        <div><h1 class="font-bold">The Workshop PLC <span id="role" class="tag bg-amber-500/20 text-amber-400 border-amber-500/30 ml-1"></span></h1>
+        <p class="text-xs text-slate-400">Signed in as <b id="who"></b></p></div></div>
+      <div class="flex gap-2 flex-wrap">
+        <button data-p="order" onclick="openM('mOrder')" class="btn bg-indigo-600"><i class="fa-solid fa-calculator"></i> LPO Order</button>
+        <button data-p="grn" onclick="openM('mGrn')" class="btn bg-blue-600"><i class="fa-solid fa-truck-ramp-box"></i> GRN</button>
+        <button data-p="order" onclick="openM('mImport')" class="btn bg-teal-600"><i class="fa-solid fa-file-import"></i> Import Excel</button>
+        <button data-p="export" onclick="exportXlsx()" class="btn bg-emerald-600"><i class="fa-solid fa-file-excel"></i> Export</button>
+        <button onclick="logout()" class="btn bg-slate-800 border border-slate-700"><i class="fa-solid fa-right-from-bracket"></i></button>
+      </div>
     </div>
+    <nav id="nav" class="bg-slate-950 px-4 border-t border-slate-800 flex gap-6 overflow-x-auto text-xs font-semibold max-w-full"></nav>
+  </header>
 
-    <!-- MAIN APP SCREEN -->
-    <div id="appScreen" class="hidden flex-1 flex-col">
-        <!-- Header -->
-        <header class="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
-            <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-slate-950 font-bold text-lg shadow-md">
-                        <i class="fa-solid fa-boxes-stacked"></i>
-                    </div>
-                    <div>
-                        <h1 class="font-bold text-base tracking-wide text-white flex items-center gap-2">
-                            The Workshop PLC 
-                            <span id="roleBadge" class="text-[10px] uppercase tracking-widest px-2.5 py-0.5 rounded-full font-extrabold bg-amber-500/20 text-amber-400 border border-amber-500/30">ADMIN</span>
-                        </h1>
-                        <p class="text-xs text-slate-400">Inventory, LPO Calculation & Wastage Tracker</p>
-                    </div>
-                </div>
+  <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
+    <section id="t-dashboard">
+      <div id="stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></div>
+      <div class="glass overflow-x-auto"><h2 class="font-bold mb-3">Banner & Sticker Rolls</h2>
+        <table class="w-full text-sm"><thead><tr><th>MATERIAL</th><th>ROLLS</th><th>MIN</th><th>BALANCE</th><th>STATUS</th></tr></thead><tbody id="rollsBody"></tbody></table></div>
+    </section>
 
-                <div class="flex items-center gap-2 flex-wrap">
-                    <button id="btnOrder" onclick="openModal('orderModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-3.5 py-2.5 rounded-lg flex items-center gap-1.5 shadow">
-                        <i class="fa-solid fa-calculator"></i> LPO Order & Auto Calc
-                    </button>
-                    <button id="btnGRN" onclick="openModal('grnModal')" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs px-3.5 py-2.5 rounded-lg flex items-center gap-1.5 shadow">
-                        <i class="fa-solid fa-truck-ramp-box"></i> GRN Entry
-                    </button>
-                    <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3 py-2.5 rounded-lg border border-slate-700">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                    </button>
-                </div>
-            </div>
+    <section id="t-ledger" class="hidden glass overflow-x-auto">
+      <div class="flex flex-wrap justify-between gap-2 mb-3"><div><h2 class="font-bold">Stock Ledger</h2>
+        <p class="text-xs text-slate-400">Balance = Beginning + Received − Issued − Wastage</p></div>
+        <div class="flex gap-2" data-p="editStock"><button onclick="addItem()" class="btn bg-amber-500 text-slate-950"><i class="fa-solid fa-plus"></i> Item</button>
+        <button onclick="setWaste()" class="btn bg-slate-800 border border-slate-700">Wastage % (<span id="wp"></span>)</button></div></div>
+      <table class="w-full text-sm"><thead><tr><th>ITEM</th><th>UNIT</th><th>ROLLS</th><th>BEGIN</th><th>+RECV</th><th>−ISSUED</th><th>−WASTE</th><th>BALANCE</th><th>MIN</th><th>OPEN ROLL LEFT</th><th>STATUS</th><th></th></tr></thead><tbody id="ledgerBody"></tbody></table>
+    </section>
 
-            <!-- Tab Navigation Bar -->
-            <div class="bg-slate-950 px-6 border-t border-slate-800">
-                <div class="max-w-7xl mx-auto flex gap-6 overflow-x-auto text-xs font-semibold">
-                    <button onclick="switchTab('dashboard')" id="tabBtn-dashboard" class="py-3 text-amber-400 border-b-2 border-amber-400 flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-chart-pie"></i> Executive Dashboard
-                    </button>
-                    <button onclick="switchTab('ledger')" id="tabBtn-ledger" class="py-3 text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-book-open"></i> Stock Ledger & Min Balances
-                    </button>
-                    <button onclick="switchTab('orders')" id="tabBtn-orders" class="py-3 text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-receipt"></i> Order & Wastage Log
-                    </button>
-                    <button id="tabAdminNav" onclick="switchTab('admin')" class="py-3 text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-user-shield text-amber-400"></i> Admin Panel & Users
-                    </button>
-                </div>
-            </div>
-        </header>
+    <section id="t-orders" class="hidden glass overflow-x-auto"><h2 class="font-bold mb-3">LPO Orders & Wastage Log</h2>
+      <table class="w-full text-sm"><thead><tr><th>DATE</th><th>LPO NO</th><th>CLIENT</th><th>MATERIAL</th><th>AREA</th><th>WASTE</th><th>TOTAL</th><th>ROLLS ENDED</th><th>STATUS</th><th>USER</th><th></th></tr></thead><tbody id="ordersBody"></tbody></table></section>
 
-        <main class="max-w-7xl mx-auto px-6 mt-6 space-y-6 flex-1 w-full">
+    <section id="t-report" class="hidden glass space-y-4">
+      <div class="flex flex-wrap justify-between items-end gap-3"><div><h2 class="font-bold">Monthly Report</h2><p class="text-xs text-slate-400">Counts active (not void) orders by order date</p></div>
+        <div class="flex gap-2 items-end"><div><label class="lbl">MONTH</label><input type="month" id="rMonth" class="in" onchange="renderReport()"></div>
+        <button data-p="export" onclick="exportReport()" class="btn bg-emerald-600">Export report</button>
+        <button onclick="window.print()" class="btn bg-slate-800 border border-slate-700">Print</button></div></div>
+      <div id="rStats" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+      <h3 class="font-bold text-sm text-amber-400">Banners & Stickers</h3>
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th>MATERIAL</th><th>ORDER LINES</th><th>PRINTED (Sqm)</th><th>WASTAGE</th><th>TOTAL USED</th><th>ROLLS ENDED</th><th>RECEIVED (GRN)</th></tr></thead><tbody id="rMedia"></tbody></table></div>
+      <h3 class="font-bold text-sm text-blue-400">Inks & Solvents</h3>
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th>ITEM</th><th>ORDER LINES</th><th>USED (L)</th><th>WASTAGE</th><th>TOTAL USED</th><th></th><th>RECEIVED (GRN)</th></tr></thead><tbody id="rInk"></tbody></table></div>
+    </section>
 
-            <!-- TAB 1: EXECUTIVE DASHBOARD -->
-            <div id="tab-dashboard" class="space-y-6">
-                <!-- Stat Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-amber-500">
-                        <p class="text-[11px] font-semibold uppercase text-slate-400">Banner Rolls in Store</p>
-                        <h3 id="statRolls" class="text-2xl font-bold text-amber-400 mt-1">0 Rolls</h3>
-                        <p class="text-xs text-slate-500">3.2m, 2.1m & Sticker rolls</p>
-                    </div>
-                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-emerald-500">
-                        <p class="text-[11px] font-semibold uppercase text-slate-400">Total Media Stock</p>
-                        <h3 id="statMedia" class="text-2xl font-bold text-white mt-1">0.0 Sqm</h3>
-                        <p class="text-xs text-slate-500">Total surface balance</p>
-                    </div>
-                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-blue-500">
-                        <p class="text-[11px] font-semibold uppercase text-slate-400">Inks & Solvents</p>
-                        <h3 id="statInk" class="text-2xl font-bold text-blue-400 mt-1">0.0 L</h3>
-                        <p class="text-xs text-slate-500">CMYK + Flushing Liquid</p>
-                    </div>
-                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-rose-500">
-                        <p class="text-[11px] font-semibold uppercase text-slate-400">Low Stock Red Flags</p>
-                        <h3 id="statRedFlags" class="text-2xl font-bold text-rose-400 mt-1">0</h3>
-                        <p class="text-xs text-rose-400/80">Items below minimum balance</p>
-                    </div>
-                </div>
+    <section id="t-grn" class="hidden glass overflow-x-auto"><h2 class="font-bold mb-3">GRN History</h2>
+      <table class="w-full text-sm"><thead><tr><th>DATE</th><th>USER</th><th>ITEM</th><th>ROLLS</th><th>QTY</th></tr></thead><tbody id="grnBody"></tbody></table></section>
 
-                <!-- Banner Roll & Stock Snapshot Table -->
-                <div class="glass-panel rounded-2xl p-6 shadow-xl">
-                    <div class="flex justify-between items-center mb-4">
-                        <div>
-                            <h2 class="font-bold text-base text-white flex items-center gap-2">
-                                <i class="fa-solid fa-scroll text-amber-400"></i> Banner & Sticker Roll Section
-                            </h2>
-                            <p class="text-xs text-slate-400">Live physical roll counts and minimum stock thresholds</p>
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead>
-                                <tr class="border-b border-slate-800 text-slate-400 text-xs bg-slate-900/50">
-                                    <th class="p-3">MATERIAL ITEM</th>
-                                    <th class="p-3 text-center">ROLLS</th>
-                                    <th class="p-3 text-right">MIN BALANCE</th>
-                                    <th class="p-3 text-right">CURRENT BALANCE</th>
-                                    <th class="p-3 text-center">STATUS</th>
-                                </tr>
-                            </thead>
-                            <tbody id="rollsTableBody" class="divide-y divide-slate-800/60"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+    <section id="t-audit" class="hidden glass overflow-x-auto"><h2 class="font-bold mb-3">Audit Log (last 500)</h2>
+      <table class="w-full text-sm"><thead><tr><th>TIME</th><th>USER</th><th>ACTION</th><th>DETAIL</th></tr></thead><tbody id="auditBody"></tbody></table></section>
 
-            <!-- TAB 2: FULL STOCK LEDGER -->
-            <div id="tab-ledger" class="space-y-6 hidden">
-                <div class="glass-panel rounded-2xl p-6 shadow-xl">
-                    <h2 class="font-bold text-base text-white mb-1">Full Stock Balance Ledger</h2>
-                    <p class="text-xs text-slate-400 mb-4">Current Balance = Beginning + Received (GRN) - Issued - Wastage</p>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead>
-                                <tr class="border-b border-slate-800 text-slate-400 text-xs bg-slate-900/50">
-                                    <th class="p-3">Item Description</th>
-                                    <th class="p-3 text-center">Unit</th>
-                                    <th class="p-3 text-center">Rolls</th>
-                                    <th class="p-3 text-right">Beginning</th>
-                                    <th class="p-3 text-right text-emerald-400">+ Received</th>
-                                    <th class="p-3 text-right text-blue-400">- Issued</th>
-                                    <th class="p-3 text-right text-rose-400">- Wastage</th>
-                                    <th class="p-3 text-right font-bold text-white">Live Balance</th>
-                                    <th class="p-3 text-center">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="fullLedgerBody" class="divide-y divide-slate-800/60"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+    <section id="t-admin" class="hidden glass space-y-5">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3"><div><h2 class="font-bold">User Management</h2><p class="text-xs text-slate-400">Roles: admin, manager, operator, viewer</p></div>
+        <button onclick="openM('mUser')" class="btn bg-amber-500 text-slate-950"><i class="fa-solid fa-user-plus"></i> Add User</button></div>
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th>USERNAME</th><th>ROLE</th><th>ACTIONS</th></tr></thead><tbody id="usersBody"></tbody></table></div>
+      <div data-p="wipe" class="pt-4 border-t border-slate-800 flex flex-wrap justify-between gap-3 items-center">
+        <div><h3 class="font-bold text-sm text-rose-400">Danger Zone</h3><p class="text-xs text-slate-400">Admin only. Both actions are logged.</p></div>
+        <div class="flex gap-2"><button onclick="zeroAll()" class="btn bg-rose-900/60 border border-rose-700 text-rose-300">Zero Out All</button>
+        <button onclick="resetData()" class="btn bg-slate-800 border border-slate-700">Reload Defaults</button></div></div>
+    </section>
+  </main>
+</div>
 
-            <!-- TAB 3: ORDERS & WASTAGE LOG -->
-            <div id="tab-orders" class="space-y-6 hidden">
-                <div class="glass-panel rounded-2xl p-6 shadow-xl">
-                    <h2 class="font-bold text-base text-white mb-1">LPO Orders & Wastage Log</h2>
-                    <p class="text-xs text-slate-400 mb-4">Detailed calculation breakdown of print jobs and off-cut losses</p>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead>
-                                <tr class="border-b border-slate-800 text-slate-400 text-xs bg-slate-900/50">
-                                    <th class="p-3">Client / LPO Reference</th>
-                                    <th class="p-3">Material Used</th>
-                                    <th class="p-3 text-right">Print Area (Sqm)</th>
-                                    <th class="p-3 text-right text-rose-400">Off-cut Wastage</th>
-                                    <th class="p-3 text-right font-bold text-amber-400">Total Deducted</th>
-                                </tr>
-                            </thead>
-                            <tbody id="ordersTableBody" class="divide-y divide-slate-800/60"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+<!-- MODALS -->
+<div id="mOrder" class="modal hidden"><form onsubmit="submitOrder(event)" class="glass w-full max-w-5xl space-y-3 max-h-[92vh] overflow-auto">
+  <div class="flex justify-between items-center"><h3 class="font-bold">New LPO <span class="text-xs text-slate-400 font-normal">(one LPO can have many item lines)</span></h3>
+    <button type="button" onclick="closeM('mOrder');openM('mImport')" class="text-xs text-teal-400 hover:underline">Upload Excel instead</button></div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+    <div><label class="lbl">LPO NO *</label><input id="oLpo" class="in" required placeholder="TWS/015/2018"></div>
+    <div><label class="lbl">CLIENT *</label><input id="oClient" class="in" required placeholder="Marvless Event"></div>
+    <div><label class="lbl">ORDER DATE</label><input id="oDate" type="date" class="in"></div></div>
+  <div id="oLines" class="space-y-2"></div>
+  <button type="button" onclick="addLine()" class="btn bg-slate-800 border border-slate-700">+ Add item line</button>
+  <div id="oSummary" class="text-xs text-slate-300 space-y-1"></div>
+  <div class="flex justify-end gap-2 pt-2 border-t border-slate-800"><button type="button" onclick="closeM('mOrder')" class="text-xs text-slate-400 px-3">Cancel</button><button class="btn bg-indigo-600">Deduct & Post LPO</button></div></form></div>
 
-            <!-- TAB 4: ADMIN PANEL & USER CONTROL (ADMIN ONLY) -->
-            <div id="tab-admin" class="space-y-6 hidden">
-                <div class="glass-panel rounded-2xl p-6 space-y-6">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
-                        <div>
-                            <h2 class="font-bold text-base text-white flex items-center gap-2">
-                                <i class="fa-solid fa-user-gear text-amber-400"></i> Admin User Privilege Center
-                            </h2>
-                            <p class="text-xs text-slate-400">Manage team accounts, add new operators, or adjust permissions</p>
-                        </div>
-                        <button onclick="openModal('addUserModal')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow flex items-center gap-1.5">
-                            <i class="fa-solid fa-user-plus"></i> Add New User
-                        </button>
-                    </div>
+<div id="mGrn" class="modal hidden"><form onsubmit="submitGRN(event)" class="glass w-full max-w-md space-y-3">
+  <h3 class="font-bold">Record GRN</h3>
+  <div><label class="lbl">ITEM *</label><select id="gMat" class="in" required></select></div>
+  <div class="grid grid-cols-2 gap-2"><div><label class="lbl">ROLLS ADDED</label><input id="gRolls" type="number" min="0" value="0" class="in"></div>
+    <div><label class="lbl">QTY (SQM / L) *</label><input id="gQty" type="number" step="0.01" min="0.01" required class="in"></div></div>
+  <div class="flex justify-end gap-2 pt-2 border-t border-slate-800"><button type="button" onclick="closeM('mGrn')" class="text-xs text-slate-400 px-3">Cancel</button><button class="btn bg-blue-600">Add Stock</button></div></form></div>
 
-                    <!-- User Table -->
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead>
-                                <tr class="border-b border-slate-800 text-slate-400 text-xs bg-slate-900/50">
-                                    <th class="p-3">Username</th>
-                                    <th class="p-3 text-center">Role</th>
-                                    <th class="p-3 text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="usersTableBody" class="divide-y divide-slate-800/60"></tbody>
-                        </table>
-                    </div>
+<div id="mUser" class="modal hidden"><form onsubmit="addUser(event)" class="glass w-full max-w-md space-y-3">
+  <h3 class="font-bold">Create User</h3>
+  <div><label class="lbl">USERNAME *</label><input id="nU" class="in" required></div>
+  <div><label class="lbl">PASSWORD * (min 6)</label><input id="nP" type="password" minlength="6" class="in" required></div>
+  <div><label class="lbl">ROLE *</label><select id="nR" class="in"><option value="operator">Operator (Orders & GRN)</option><option value="manager">Manager (+ void, edit stock)</option><option value="viewer">Viewer (read-only)</option><option value="admin">Administrator</option></select></div>
+  <div class="flex justify-end gap-2 pt-2 border-t border-slate-800"><button type="button" onclick="closeM('mUser')" class="text-xs text-slate-400 px-3">Cancel</button><button class="btn bg-amber-500 text-slate-950">Create</button></div></form></div>
 
-                    <!-- Admin Danger Zone -->
-                    <div class="pt-6 border-t border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div>
-                            <h3 class="font-bold text-sm text-rose-400">Admin Data Controls</h3>
-                            <p class="text-xs text-slate-400">Erase all filled inventory quantities or restore default stock baseline</p>
-                        </div>
-                        <div class="flex gap-2 flex-wrap">
-                            <button onclick="clearAllToZero()" class="bg-rose-900/50 hover:bg-rose-900/80 text-rose-300 border border-rose-700/60 text-xs font-bold px-4 py-2.5 rounded-xl shadow">
-                                <i class="fa-solid fa-trash-can me-1"></i> Zero Out All Balances
-                            </button>
-                            <button onclick="resetData()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl shadow">
-                                <i class="fa-solid fa-rotate-right me-1"></i> Reload Default Baseline
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div id="mImport" class="modal hidden"><div class="glass w-full max-w-lg space-y-3">
+  <h3 class="font-bold">Import LPO Orders & GRN from Excel</h3>
+  <p class="text-xs text-slate-400">Choose an .xlsx file with an <b>Orders</b> and/or <b>GRN</b> sheet. Several rows with the same LPO No become one LPO with many lines. GRNs are added first, then orders are deducted. Rows already imported are skipped, and rows starting with "EXAMPLE" are ignored.</p>
+  <input type="file" accept=".xlsx,.xls" onchange="importExcel(event)" class="in">
+  <pre id="impResult" class="text-xs text-slate-300 whitespace-pre-wrap max-h-60 overflow-auto"></pre>
+  <div class="flex justify-between pt-2 border-t border-slate-800">
+    <button type="button" onclick="downloadTemplate()" class="text-xs text-blue-400 hover:underline">Download template</button>
+    <button type="button" onclick="closeM('mImport')" class="btn bg-slate-800 border border-slate-700">Close</button></div>
+</div></div>
 
-        </main>
-    </div>
+<script>
+/* ---------- DATA ---------- */
+const PERMS = {
+  admin:    ['view','order','grn','void','editStock','users','export','audit','wipe'],
+  manager:  ['view','order','grn','void','editStock','export','audit'],
+  operator: ['view','order','grn','export'],
+  viewer:   ['view']
+};
+const D = (id,name,cat,unit,rolls,min,b,r,i,w) => ({id,name,category:cat,unit,rolls,minLimit:min,beginning:b,received:r,issued:i,wastage:w});
+const DEFAULT_STOCK = [
+  D(1,"White Back banner 3.2mw","Media","Sqm",8,100,1113.06,0,194.9,22.12),
+  D(2,"White Back banner 2.1mw","Media","Sqm",2,30,157.6,0,33.8,6.31),
+  D(3,"Grayback Banner 0.95mw","Media","Sqm",1,20,34.2,0,19.5,3.3),
+  D(4,"Vinyl Glossy Sticker 1.07mw","Media","Sqm",3,40,198.48,48.15,198.76,34.06),
+  D(5,"Vinyl Glossy Sticker 1.52mw","Media","Sqm",1,20,60.5,0,36.98,6.07),
+  D(6,"Frosted Sticker 1.22mw","Media","Sqm",2,25,141.77,0,49.07,18.68),
+  D(7,"Mesh Sticker 1.27mw","Media","Sqm",1,5,10.922,0,8.77,2.12),
+  D(8,"Cyan Solvent Ink","Ink","Liters",0,5,15,5,4.5,.2),
+  D(9,"Magenta Solvent Ink","Ink","Liters",0,5,15,5,4.8,.2),
+  D(10,"Yellow Solvent Ink","Ink","Liters",0,5,15,5,5.1,.2),
+  D(11,"Black Solvent Ink","Ink","Liters",0,5,15,5,4.2,.2),
+  D(12,"Flushing Solvent Liquid","Ink","Liters",0,5,20,0,3,.5)
+];
+const LS = (k,d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } };
+const clone = o => JSON.parse(JSON.stringify(o));
+let me = null;
+let users = LS('tws_users_v8', null), stock = LS('tws_stock_v8', clone(DEFAULT_STOCK)),
+    orders = LS('tws_orders_v8', []), grns = LS('tws_grn_v8', []), audit = LS('tws_audit_v8', []),
+    wpct = LS('tws_wpct_v8', 8);
 
-    <!-- MODAL: LPO ORDER ENTRY WITH AUTO WASTAGE CALCULATION -->
-    <div id="orderModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="glass-panel w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
-            <div class="bg-slate-900 p-4 border-b border-slate-800 flex justify-between items-center">
-                <h3 class="font-bold text-sm text-white flex items-center gap-2">
-                    <i class="fa-solid fa-calculator text-amber-400"></i> New LPO Order & Auto Calculator
-                </h3>
-                <button onclick="closeModal('orderModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form onsubmit="submitOrder(event)" class="p-5 space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">SELECT MATERIAL / INK *</label>
-                    <select id="orderMaterial" required onchange="calculateOrderTotals()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none focus:border-amber-500"></select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">CLIENT / LPO NO *</label>
-                    <input type="text" id="orderClient" required placeholder="e.g. Marvless Event (TWS/015/2018)" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none focus:border-amber-500">
-                </div>
+function save() {
+  localStorage.setItem('tws_users_v8', JSON.stringify(users));
+  localStorage.setItem('tws_stock_v8', JSON.stringify(stock));
+  localStorage.setItem('tws_orders_v8', JSON.stringify(orders));
+  localStorage.setItem('tws_grn_v8', JSON.stringify(grns));
+  localStorage.setItem('tws_audit_v8', JSON.stringify(audit));
+  localStorage.setItem('tws_wpct_v8', JSON.stringify(wpct));
+}
 
-                <!-- LPO Dimension Auto Calculations -->
-                <div class="grid grid-cols-3 gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 mb-1">WIDTH (m)</label>
-                        <input type="number" id="calcWidth" step="0.01" oninput="calculateOrderTotals()" placeholder="3.0" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 mb-1">HEIGHT (m)</label>
-                        <input type="number" id="calcHeight" step="0.01" oninput="calculateOrderTotals()" placeholder="4.0" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 mb-1">QTY (Pcs)</label>
-                        <input type="number" id="calcQty" value="1" min="1" oninput="calculateOrderTotals()" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white">
-                    </div>
-                </div>
+/* ---------- HELPERS ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const bal = i => i.beginning + i.received - i.issued - i.wastage;
+const can = p => !!me && (PERMS[me.role] || []).includes(p);
+const guard = p => can(p) || (alert('Access denied: your role cannot do this.'), false);
+const now = () => new Date().toLocaleString();
+function logAudit(action, detail) {
+  audit.unshift({ time: now(), user: me ? me.username : '-', action, detail });
+  audit = audit.slice(0, 500);
+}
+async function sha(t) {
+  t = 'tws::' + t;
+  if (window.crypto && crypto.subtle) {
+    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+    return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+  }
+  let h = 5381; for (const c of t) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0; return 'x' + h.toString(16);
+}
+const openM = id => { if (id === 'mOrder') initOrderForm(); $(id).classList.remove('hidden'); $(id).classList.add('flex'); };
+const closeM = id => { $(id).classList.add('hidden'); $(id).classList.remove('flex'); };
 
-                <!-- Automated SQM & Wastage Results -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">PRINTED AREA (Sqm/L) *</label>
-                        <input type="number" id="orderQty" step="0.01" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-rose-400 mb-1">AUTO WASTAGE (Sqm/L)</label>
-                        <input type="number" id="orderWastage" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-rose-900/50 rounded-lg p-2.5 text-sm text-rose-300 outline-none">
-                    </div>
-                </div>
+/* ---------- AUTH ---------- */
+async function boot() {
+  if (!users) {
+    users = [
+      { username: 'admin',    password: await sha('admin'),  role: 'admin' },
+      { username: 'manager',  password: await sha('manager123'), role: 'manager' },
+      { username: 'operator', password: await sha('op123'),     role: 'operator' },
+      { username: 'viewer',   password: await sha('viewer123'), role: 'viewer' }
+    ];
+    save();
+  }
+  if (!localStorage.getItem('tws_adminpw_v1')) {   // one-time: set admin password to "admin"
+    const ad = users.find(x => x.username === 'admin');
+    if (ad) { ad.password = await sha('admin'); save(); }
+    localStorage.setItem('tws_adminpw_v1', '1');
+  }
+  const s = localStorage.getItem('tws_session_v8');
+  const u = s && users.find(x => x.username === s);
+  if (u) { me = u; initUI(); } else localStorage.removeItem('tws_session_v8');
+}
+async function doLogin(e) {
+  e.preventDefault();
+  const u = $('lu').value.trim().toLowerCase(), p = await sha($('lp').value);
+  const f = users.find(x => x.username.toLowerCase() === u && x.password === p);
+  if (!f) { $('lerr').classList.remove('hidden'); return; }
+  me = f; localStorage.setItem('tws_session_v8', f.username);
+  $('lerr').classList.add('hidden'); $('lp').value = '';
+  logAudit('LOGIN', f.username); save(); initUI();
+}
+function logout() {
+  if (me) { logAudit('LOGOUT', me.username); save(); }
+  me = null; localStorage.removeItem('tws_session_v8');
+  $('app').classList.add('hidden'); $('login').classList.remove('hidden');
+}
 
-                <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
-                    <button type="button" onclick="closeModal('orderModal')" class="px-4 py-2 text-slate-400 text-xs font-semibold">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow">Deduct & Post Order</button>
-                </div>
-            </form>
-        </div>
-    </div>
+/* ---------- UI ---------- */
+const TABS = [
+  ['dashboard','Executive Dashboard','chart-pie','view'], ['ledger','Stock Ledger','book-open','view'],
+  ['orders','Orders & Wastage','receipt','view'], ['report','Monthly Report','chart-column','view'], ['grn','GRN History','truck-ramp-box','view'],
+  ['audit','Audit Log','clipboard-list','audit'], ['admin','Admin & Users','user-shield','users']
+];
+function initUI() {
+  $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+  $('role').innerText = me.role.toUpperCase(); $('who').innerText = me.username;
+  document.querySelectorAll('[data-p]').forEach(el => el.style.display = can(el.dataset.p) ? '' : 'none');
+  $('nav').innerHTML = TABS.filter(t => can(t[3])).map(t =>
+    `<button id="tb-${t[0]}" onclick="tab('${t[0]}')" class="py-3 whitespace-nowrap flex items-center gap-2"><i class="fa-solid fa-${t[2]}"></i> ${t[1]}</button>`).join('');
+  tab('dashboard'); renderAll();
+}
+function tab(id) {
+  TABS.forEach(t => {
+    const s = $('t-' + t[0]), b = $('tb-' + t[0]);
+    if (s) s.classList.toggle('hidden', t[0] !== id);
+    if (b) b.className = 'py-3 whitespace-nowrap flex items-center gap-2 ' + (t[0] === id ? 'text-amber-400 border-b-2 border-amber-400' : 'text-slate-400 hover:text-white');
+  });
+}
+function statusTag(i) {
+  const b = bal(i);
+  if (b <= 0) return '<span class="tag bg-rose-500/20 text-rose-400 border-rose-500/30">EMPTY</span>';
+  if (b <= i.minLimit) return '<span class="tag bg-amber-500/20 text-amber-400 border-amber-500/30">⚠ LOW</span>';
+  return '<span class="tag bg-emerald-500/20 text-emerald-400 border-emerald-500/30">HEALTHY</span>';
+}
+function renderAll() {
+  let rolls = 0, media = 0, ink = 0, flags = 0, rh = '', lh = '';
+  stock.forEach(i => {
+    const b = bal(i), low = b <= i.minLimit;
+    if (low) flags++;
+    if (i.category === 'Media') { rolls += i.rolls || 0; media += b;
+      rh += `<tr class="hover:bg-slate-800/40"><td class="font-semibold">${esc(i.name)}</td><td class="text-amber-400 font-bold">${i.rolls || 0}</td><td class="text-slate-400">${i.minLimit} ${i.unit}</td><td class="font-bold ${low ? 'text-rose-400' : ''}">${b.toFixed(2)}</td><td>${statusTag(i)}</td></tr>`;
+    } else ink += b;
+    lh += `<tr class="hover:bg-slate-800/40"><td class="font-semibold">${esc(i.name)}</td><td class="text-slate-400">${i.unit}</td><td class="text-amber-400">${i.rolls > 0 ? i.rolls : '-'}</td>
+      <td>${i.beginning.toFixed(2)}</td><td class="text-emerald-400">+${i.received.toFixed(2)}</td><td class="text-blue-400">−${i.issued.toFixed(2)}</td><td class="text-rose-400">−${i.wastage.toFixed(2)}</td>
+      <td class="font-bold">${b.toFixed(2)}</td><td class="text-slate-400">${i.minLimit}</td><td class="text-slate-400">${openLeft(i)}</td><td>${statusTag(i)}</td>
+      <td>${can('editStock') ? `<button onclick="editMin(${i.id})" class="text-xs text-amber-400 hover:underline">Edit min</button> ${i.category === 'Media' ? `<button onclick="editRollLen(${i.id})" class="text-xs text-blue-400 hover:underline ml-1">Roll length</button>` : ''} <button onclick="delItem(${i.id})" class="text-xs text-rose-400 hover:underline ml-1">Delete</button>` : ''}</td></tr>`;
+  });
+  const card = (c, l, v) => `<div class="glass border-l-4 border-${c}-500"><p class="text-[11px] uppercase text-slate-400">${l}</p><h3 class="text-2xl font-bold mt-1">${v}</h3></div>`;
+  $('stats').innerHTML = card('amber','Banner Rolls in Store', rolls + ' Rolls') + card('emerald','Total Media Stock', media.toFixed(2) + ' Sqm') +
+    card('blue','Inks & Solvents', ink.toFixed(1) + ' L') + card('rose','Low Stock Flags', flags);
+  $('rollsBody').innerHTML = rh; $('ledgerBody').innerHTML = lh; $('wp').innerText = wpct + '%';
 
-    <!-- MODAL: GRN REPLENISHMENT -->
-    <div id="grnModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="glass-panel w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
-            <div class="bg-slate-900 p-4 border-b border-slate-800 flex justify-between items-center">
-                <h3 class="font-bold text-sm text-white"><i class="fa-solid fa-truck-ramp-box text-blue-400 me-2"></i> Record GRN Stock</h3>
-                <button onclick="closeModal('grnModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form onsubmit="submitGRN(event)" class="p-5 space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">SELECT ITEM *</label>
-                    <select id="grnMaterial" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none"></select>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">NEW ROLLS ADDED</label>
-                        <input type="number" id="grnRolls" min="0" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">QTY (SQM / LITERS) *</label>
-                        <input type="number" id="grnQty" step="0.01" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
-                    </div>
-                </div>
-                <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
-                    <button type="button" onclick="closeModal('grnModal')" class="px-4 py-2 text-slate-400 text-xs font-semibold">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow">Add Stock</button>
-                </div>
-            </form>
-        </div>
-    </div>
+  const seenL = new Set();
+  $('ordersBody').innerHTML = orders.length ? orders.map(o => {
+    const key = norm(o.lpo || o.client) + '|' + (o.ymd || o.date), first = o.status === 'active' && !seenL.has(key); if (first) seenL.add(key);
+    const v = o.status === 'void';
+    return `<tr class="hover:bg-slate-800/40 ${v ? 'line-through opacity-50' : ''}">
+    <td class="text-xs text-slate-400">${esc(o.ymd || o.date)}</td><td class="font-semibold">${esc(o.lpo || o.client)}</td><td>${esc(o.lpo ? o.client : '')}</td><td>${esc(o.materialName)}</td>
+    <td class="text-blue-400">${o.qty.toFixed(2)}</td><td class="text-rose-400">${o.wastage.toFixed(2)}</td><td class="font-bold text-amber-400">${(o.qty + o.wastage).toFixed(2)}</td>
+    <td class="text-center">${o.rollsEnded ? '🔚 ' + o.rollsEnded : '-'}</td>
+    <td><span class="tag ${v ? 'text-rose-400 border-rose-500/30' : 'text-emerald-400 border-emerald-500/30'}">${o.status.toUpperCase()}</span></td><td class="text-xs">${esc(o.user)}</td>
+    <td>${can('void') && first ? `<button onclick="voidLpo(${o.id})" class="text-xs text-rose-400 hover:underline">Void LPO</button>` : ''}</td></tr>`;
+  }).join('') : '<tr><td colspan="11" class="text-center text-xs text-slate-500">No orders yet.</td></tr>';
 
-    <!-- MODAL: ADD USER (ADMIN) -->
-    <div id="addUserModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="glass-panel w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
-            <div class="bg-slate-900 p-4 border-b border-slate-800 flex justify-between items-center">
-                <h3 class="font-bold text-sm text-white"><i class="fa-solid fa-user-plus text-amber-400 me-2"></i> Create User Account</h3>
-                <button onclick="closeModal('addUserModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form onsubmit="submitNewUser(event)" class="p-5 space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">USERNAME *</label>
-                    <input type="text" id="newUsername" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">PASSWORD *</label>
-                    <input type="password" id="newPassword" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">ROLE *</label>
-                    <select id="newRole" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none">
-                        <option value="operator">Operator (Orders & GRN)</option>
-                        <option value="viewer">Viewer (Read-Only)</option>
-                        <option value="admin">Administrator (Full Control)</option>
-                    </select>
-                </div>
-                <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
-                    <button type="button" onclick="closeModal('addUserModal')" class="px-4 py-2 text-slate-400 text-xs font-semibold">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg shadow">Create Account</button>
-                </div>
-            </form>
-        </div>
-    </div>
+  $('grnBody').innerHTML = grns.length ? grns.map(g => `<tr class="hover:bg-slate-800/40"><td class="text-xs text-slate-400">${esc(g.date)}</td><td>${esc(g.user)}</td><td>${esc(g.item)}</td><td>${g.rolls}</td><td class="text-emerald-400">+${g.qty.toFixed(2)}</td></tr>`).join('')
+    : '<tr><td colspan="5" class="text-center text-xs text-slate-500">No GRN entries yet.</td></tr>';
 
-    <!-- SYSTEM JAVASCRIPT -->
-    <script>
-        // Baseline Stock with Minimum Balance Thresholds
-        const defaultStock = [
-            { id: 1, name: "White Back banner 3.2mw", category: "Media", unit: "Sqm", rolls: 8, minLimit: 100, beginning: 1113.06, received: 0, issued: 194.9, wastage: 22.12 },
-            { id: 2, name: "White Back banner 2.1mw", category: "Media", unit: "Sqm", rolls: 2, minLimit: 30, beginning: 157.6, received: 0, issued: 33.8, wastage: 6.31 },
-            { id: 3, name: "Grayback Banner 0.95mw", category: "Media", unit: "Sqm", rolls: 1, minLimit: 20, beginning: 34.2, received: 0, issued: 19.5, wastage: 3.3 },
-            { id: 4, name: "Vinyl Glossy Sticker 1.07mw", category: "Media", unit: "Sqm", rolls: 3, minLimit: 40, beginning: 198.48, received: 48.15, issued: 198.76, wastage: 34.06 },
-            { id: 5, name: "Vinyl Glossy Sticker 1.52mw", category: "Media", unit: "Sqm", rolls: 1, minLimit: 20, beginning: 60.5, received: 0, issued: 36.98, wastage: 6.07 },
-            { id: 6, name: "Frosted Sticker 1.22mw", category: "Media", unit: "Sqm", rolls: 2, minLimit: 25, beginning: 141.77, received: 0, issued: 49.07, wastage: 18.68 },
-            { id: 7, name: "Mesh Sticker 1.27mw", category: "Media", unit: "Sqm", rolls: 1, minLimit: 5, beginning: 10.922, received: 0, issued: 8.77, wastage: 2.12 },
-            { id: 8, name: "Cyan Solvent Ink", category: "Ink", unit: "Liters", rolls: 0, minLimit: 5.0, beginning: 15.0, received: 5.0, issued: 4.5, wastage: 0.2 },
-            { id: 9, name: "Magenta Solvent Ink", category: "Ink", unit: "Liters", rolls: 0, minLimit: 5.0, beginning: 15.0, received: 5.0, issued: 4.8, wastage: 0.2 },
-            { id: 10, name: "Yellow Solvent Ink", category: "Ink", unit: "Liters", rolls: 0, minLimit: 5.0, beginning: 15.0, received: 5.0, issued: 5.1, wastage: 0.2 },
-            { id: 11, name: "Black Solvent Ink", category: "Ink", unit: "Liters", rolls: 0, minLimit: 5.0, beginning: 15.0, received: 5.0, issued: 4.2, wastage: 0.2 },
-            { id: 12, name: "Flushing Solvent Liquid", category: "Ink", unit: "Liters", rolls: 0, minLimit: 5.0, beginning: 20.0, received: 0.0, issued: 3.0, wastage: 0.5 }
-        ];
+  $('auditBody').innerHTML = audit.map(a => `<tr class="hover:bg-slate-800/40"><td class="text-xs text-slate-400">${esc(a.time)}</td><td>${esc(a.user)}</td><td><span class="tag text-amber-400 border-slate-700">${esc(a.action)}</span></td><td class="text-slate-300">${esc(a.detail)}</td></tr>`).join('');
 
-        const defaultUsers = [
-            { username: "admin", password: "admin123", role: "admin" },
-            { username: "operator", password: "op123", role: "operator" },
-            { username: "viewer", password: "viewer123", role: "viewer" }
-        ];
+  $('usersBody').innerHTML = users.map(u => {
+    const sys = u.username === 'admin';
+    return `<tr class="hover:bg-slate-800/40"><td class="font-mono">${esc(u.username)}</td>
+      <td>${sys ? '<span class="tag text-amber-400 border-slate-700">ADMIN (system)</span>' :
+        `<select onchange="changeRole('${esc(u.username)}',this.value)" class="in !w-auto !p-1.5 text-xs">${Object.keys(PERMS).map(r => `<option ${r === u.role ? 'selected' : ''}>${r}</option>`).join('')}</select>`}</td>
+      <td><button onclick="resetPwd('${esc(u.username)}')" class="text-xs text-blue-400 hover:underline">Reset password</button>
+      ${sys ? '' : `<button onclick="delUser('${esc(u.username)}')" class="text-xs text-rose-400 hover:underline ml-3">Delete</button>`}</td></tr>`;
+  }).join('');
 
-        let currentUser = JSON.parse(localStorage.getItem('tws_user_session')) || null;
-        let usersData = JSON.parse(localStorage.getItem('tws_users_v7')) || defaultUsers;
-        let stockData = JSON.parse(localStorage.getItem('tws_stock_v7')) || defaultStock;
-        let ordersData = JSON.parse(localStorage.getItem('tws_orders_v7')) || [];
+  const opts = stock.map(i => `<option value="${i.id}">${esc(i.name)} (${i.unit})</option>`).join('');
+  $('gMat').innerHTML = opts; renderReport();
+}
 
-        function saveState() {
-            localStorage.setItem('tws_users_v7', JSON.stringify(usersData));
-            localStorage.setItem('tws_stock_v7', JSON.stringify(stockData));
-            localStorage.setItem('tws_orders_v7', JSON.stringify(ordersData));
-        }
+/* ---------- ORDERS / GRN ---------- */
+const today = () => new Date().toISOString().slice(0, 10);
+function rollWidth(m) {
+  if (m.rollW > 0) return m.rollW;
+  const x = /(\d+(?:\.\d+)?)\s*mw/i.exec(m.name); return x ? parseFloat(x[1]) : 0;
+}
+// Media wastage = (roll width - ordered width) x ordered height x pcs. Tries rotating the piece if that wastes less.
+function wasteFor(m, w, h, q, area) {
+  const R = rollWidth(m);
+  if (m.category === 'Media' && R > 0 && w > 0 && h > 0) {
+    let best = null;
+    [[w, h], [h, w]].forEach(([across, len]) => { if (across <= R) { const x = (R - across) * len * q; if (best === null || x < best) best = x; } });
+    if (best !== null) return +best.toFixed(2);
+  }
+  return +(area * wpct / 100).toFixed(2);
+}
+/* ----- roll tracking: one roll = roll width x roll length (default 50 m). openUsed = Sqm already used from the open roll ----- */
+const sprOf = m => m.category === 'Media' ? rollWidth(m) * (m.rollLen || 50) : 0;
+const openLeft = m => { const s = sprOf(m); return s && m.rolls > 0 ? (s - (m.openUsed || 0)).toFixed(1) + ' Sqm' : '-'; };
+function takeFromRoll(m, used) {
+  const s = sprOf(m); if (!s || !(m.rolls > 0)) return 0;
+  m.openUsed = (m.openUsed || 0) + used; let ended = 0;
+  while (m.openUsed >= s && m.rolls > 0) { m.openUsed -= s; m.rolls--; ended++; }
+  return ended;
+}
+function giveBackRoll(m, used) {
+  const s = sprOf(m); if (!s) return;
+  m.openUsed = (m.openUsed || 0) - used;
+  while (m.openUsed < 0) { m.openUsed += s; m.rolls = (m.rolls || 0) + 1; }
+}
+function editRollLen(id) {
+  if (!guard('editStock')) return;
+  const m = stock.find(x => x.id === id), R = rollWidth(m);
+  const v = parseFloat(prompt(`Roll length in metres for ${m.name} (width ${R}m).\nOne roll = ${R} x length Sqm. Current: ${m.rollLen || 50}m`, m.rollLen || 50));
+  if (isNaN(v) || v <= 0) return;
+  logAudit('ROLL_LEN', `${m.name}: ${m.rollLen || 50}m → ${v}m`); m.rollLen = v; save(); renderAll();
+}
 
-        function handleLogin(e) {
-            e.preventDefault();
-            const u = document.getElementById('loginUser').value.trim();
-            const p = document.getElementById('loginPass').value.trim();
+/* ----- LPO form (many lines per LPO) ----- */
+let lineN = 0;
+const lf = (n, f) => document.querySelector(`#ln${n} [data-f="${f}"]`);
+const matOpts = () => stock.map(i => `<option value="${i.id}">${esc(i.name)} (${i.unit})</option>`).join('');
+function initOrderForm() {
+  $('oLines').innerHTML = ''; $('oLpo').value = ''; $('oClient').value = ''; $('oDate').value = today(); $('oSummary').innerHTML = ''; addLine();
+}
+function addLine() {
+  const n = ++lineN, d = document.createElement('div');
+  d.id = 'ln' + n; d.className = 'grid grid-cols-6 md:grid-cols-12 gap-1 items-end bg-slate-900/60 p-2 rounded-lg';
+  d.innerHTML = `<div class="col-span-6 md:col-span-4"><label class="lbl">MATERIAL / INK</label><select data-f="mat" class="in" onchange="calcLine(${n})">${matOpts()}</select></div>
+    <div class="col-span-2 md:col-span-1"><label class="lbl">W (m)</label><input data-f="w" type="number" step="0.01" min="0" oninput="calcLine(${n})" class="in"></div>
+    <div class="col-span-2 md:col-span-1"><label class="lbl">H (m)</label><input data-f="h" type="number" step="0.01" min="0" oninput="calcLine(${n})" class="in"></div>
+    <div class="col-span-2 md:col-span-1"><label class="lbl">PCS</label><input data-f="pcs" type="number" min="1" value="1" oninput="calcLine(${n})" class="in"></div>
+    <div class="col-span-3 md:col-span-2"><label class="lbl">AREA / LITERS</label><input data-f="area" type="number" step="0.01" min="0" oninput="calcLine(${n})" class="in"></div>
+    <div class="col-span-2 md:col-span-2"><label class="lbl text-rose-400">WASTAGE</label><input data-f="waste" type="number" step="0.01" min="0" oninput="sumLines()" class="in"></div>
+    <div class="col-span-1 text-center"><button type="button" title="Remove line" onclick="document.getElementById('ln${n}').remove();sumLines()" class="text-rose-400 p-2">✕</button></div>
+    <p data-f="hint" class="col-span-6 md:col-span-12 text-xs text-amber-400"></p>`;
+  $('oLines').appendChild(d); calcLine(n);
+}
+function calcLine(n) {
+  const g = f => lf(n, f), m = stock.find(x => x.id === parseInt(g('mat').value));
+  const w = parseFloat(g('w').value) || 0, h = parseFloat(g('h').value) || 0, q = parseInt(g('pcs').value) || 1;
+  if (w > 0 && h > 0) g('area').value = (w * h * q).toFixed(2);
+  const a = parseFloat(g('area').value) || 0;
+  g('waste').value = a > 0 && m ? wasteFor(m, w, h, q, a).toFixed(2) : '';
+  const R = m ? rollWidth(m) : 0;
+  g('hint').textContent = R ? `Roll ${R}m wide: wastage = (${R} − width) × height × pcs` : `No roll width: wastage = ${wpct}% of area`;
+  sumLines();
+}
+function sumLines() {
+  const use = {};
+  document.querySelectorAll('#oLines > div').forEach(d => {
+    const id = parseInt(d.querySelector('[data-f="mat"]').value), a = parseFloat(d.querySelector('[data-f="area"]').value) || 0, w = parseFloat(d.querySelector('[data-f="waste"]').value) || 0;
+    if (a > 0) use[id] = (use[id] || 0) + a + w;
+  });
+  $('oSummary').innerHTML = Object.entries(use).map(([id, u]) => {
+    const m = stock.find(x => x.id == id), s = sprOf(m); let t = `• ${esc(m.name)}: uses ${u.toFixed(2)} ${m.unit}`;
+    if (s && m.rolls > 0) {
+      const ends = Math.min(m.rolls, Math.floor(((m.openUsed || 0) + u) / s));
+      t += ` — open roll has ${(s - (m.openUsed || 0)).toFixed(1)} Sqm left` + (ends ? `, <b class="text-amber-400">this will finish ${ends} roll(s)</b>` : '');
+    }
+    if (u > bal(m)) t += ' <b class="text-rose-400">(more than stock!)</b>';
+    return t;
+  }).join('<br>');
+}
+// Posts one LPO with many lines. Returns {error} or {msgs}. Used by the form and by Excel import.
+function postLpo(lpo, client, date, lines) {
+  const need = {}; lines.forEach(l => need[l.m.id] = (need[l.m.id] || 0) + l.area + l.waste);
+  for (const id in need) { const m = stock.find(x => x.id == id); if (need[id] > bal(m) + 1e-9) return { error: `Insufficient stock for ${m.name}. Needed ${need[id].toFixed(2)}, available ${bal(m).toFixed(2)} ${m.unit}` }; }
+  const msgs = [], rows = [];
+  lines.forEach((l, i) => {
+    const m = l.m; m.issued += l.area; m.wastage += l.waste;
+    const ended = takeFromRoll(m, l.area + l.waste);
+    rows.push({ id: Date.now() + i, lpo, client, date, ymd: date, user: me.username, materialId: m.id, materialName: m.name,
+                w: l.w, h: l.h, pcs: l.pcs, qty: l.area, wastage: l.waste, rollsEnded: ended, status: 'active', ref: l.ref });
+    if (ended) { msgs.push(`🔚 ${m.name}: ${ended} roll(s) finished. ${m.rolls} roll(s) left.`); logAudit('ROLL_END', `${m.name}: ${ended} finished, ${m.rolls} left (LPO ${lpo})`); }
+  });
+  orders = [...rows, ...orders];
+  logAudit('LPO', `${lpo} (${client}): ${lines.length} line(s)`);
+  return { msgs };
+}
+function submitOrder(e) {
+  e.preventDefault(); if (!guard('order')) return;
+  const lpo = $('oLpo').value.trim(), client = $('oClient').value.trim(), date = $('oDate').value || today(), lines = [];
+  for (const d of document.querySelectorAll('#oLines > div')) {
+    const q = f => d.querySelector(`[data-f="${f}"]`), m = stock.find(x => x.id === parseInt(q('mat').value));
+    const area = parseFloat(q('area').value) || 0, waste = parseFloat(q('waste').value) || 0;
+    if (!m || area <= 0 || waste < 0) continue;
+    lines.push({ m, w: parseFloat(q('w').value) || 0, h: parseFloat(q('h').value) || 0, pcs: parseInt(q('pcs').value) || 1, area, waste });
+  }
+  if (!lines.length) return alert('Add at least one item line with an area or quantity.');
+  if (orders.some(o => o.status === 'active' && norm(o.lpo || o.client) === norm(lpo)) && !confirm(`LPO "${lpo}" already exists. Add these lines to it anyway?`)) return;
+  const r = postLpo(lpo, client, date, lines);
+  if (r.error) return alert(r.error);
+  save(); renderAll(); closeM('mOrder');
+  if (r.msgs.length) alert(r.msgs.join('\n'));
+}
+function voidLpo(id) {
+  if (!guard('void')) return;
+  const o = orders.find(x => x.id === id); if (!o || o.status === 'void') return;
+  const key = norm(o.lpo || o.client), grp = orders.filter(x => x.status === 'active' && norm(x.lpo || x.client) === key && (x.ymd || x.date) === (o.ymd || o.date));
+  if (!confirm(`Void LPO "${o.lpo || o.client}" (${grp.length} line(s)) and return stock and rolls?`)) return;
+  grp.forEach(x => { const m = stock.find(y => y.id === x.materialId); if (m) { m.issued -= x.qty; m.wastage -= x.wastage; giveBackRoll(m, x.qty + x.wastage); } x.status = 'void'; });
+  logAudit('VOID', `LPO ${o.lpo || o.client}: ${grp.length} line(s)`); save(); renderAll();
+}
 
-            const found = usersData.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p);
-            if (found) {
-                currentUser = found;
-                localStorage.setItem('tws_user_session', JSON.stringify(currentUser));
-                document.getElementById('loginError').classList.add('hidden');
-                initUI();
-            } else {
-                document.getElementById('loginError').classList.remove('hidden');
-            }
-        }
+/* ----- monthly report ----- */
+let lastReport = null;
+function monthOf(x) { if (x.ymd) return x.ymd.slice(0, 7); const d = new Date(x.date); return isNaN(d) ? '' : `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; }
+function renderReport() {
+  if (!$('rMonth').value) $('rMonth').value = today().slice(0, 7);
+  const mo = $('rMonth').value, os = orders.filter(o => o.status === 'active' && monthOf(o) === mo), gs = grns.filter(g => monthOf(g) === mo);
+  const sum = (a, f) => a.reduce((t, x) => t + f(x), 0);
+  const per = stock.map(i => { const a = os.filter(o => o.materialId === i.id), area = sum(a, o => o.qty), waste = sum(a, o => o.wastage);
+    return { cat: i.category, name: i.name, lines: a.length, area, waste, total: area + waste, ended: sum(a, o => o.rollsEnded || 0), rec: sum(gs.filter(g => g.item === i.name), g => g.qty) }; });
+  const media = per.filter(x => x.cat === 'Media'), ink = per.filter(x => x.cat !== 'Media');
+  const nLpo = new Set(os.map(o => norm(o.lpo || o.client))).size;
+  const card = (c, l, v) => `<div class="glass border-l-4 border-${c}-500"><p class="text-[11px] uppercase text-slate-400">${l}</p><h3 class="text-2xl font-bold mt-1">${v}</h3></div>`;
+  const mArea = sum(media, x => x.area), mWaste = sum(media, x => x.waste), allWaste = sum(per, x => x.waste);
+  $('rStats').innerHTML = card('amber', 'LPOs Done', nLpo) + card('indigo', 'Order Lines', os.length) + card('emerald', 'Media Printed (Sqm)', mArea.toFixed(2)) +
+    card('rose', 'Total Wastage', allWaste.toFixed(2) + (mArea ? ` <span class="text-xs text-slate-400">(${(mWaste / mArea * 100).toFixed(1)}% of media)</span>` : '')) +
+    card('blue', 'Ink Used (L)', sum(ink, x => x.total).toFixed(2)) + card('amber', 'Rolls Finished', sum(media, x => x.ended)) +
+    card('emerald', 'Media Used incl. Waste', sum(media, x => x.total).toFixed(2)) + card('blue', 'Received (GRN lines)', gs.length);
+  const row = (x, mediaRow) => `<tr class="hover:bg-slate-800/40"><td class="font-semibold">${esc(x.name)}</td><td>${x.lines}</td><td class="text-blue-400">${x.area.toFixed(2)}</td><td class="text-rose-400">${x.waste.toFixed(2)}</td><td class="font-bold">${x.total.toFixed(2)}</td><td class="text-amber-400">${mediaRow ? x.ended : ''}</td><td class="text-emerald-400">${x.rec.toFixed(2)}</td></tr>`;
+  const tot = (a, mediaRow) => `<tr class="border-t-2 border-slate-600 font-bold"><td>TOTAL</td><td>${sum(a, x => x.lines)}</td><td>${sum(a, x => x.area).toFixed(2)}</td><td>${sum(a, x => x.waste).toFixed(2)}</td><td>${sum(a, x => x.total).toFixed(2)}</td><td>${mediaRow ? sum(a, x => x.ended) : ''}</td><td>${sum(a, x => x.rec).toFixed(2)}</td></tr>`;
+  $('rMedia').innerHTML = media.map(x => row(x, true)).join('') + tot(media, true);
+  $('rInk').innerHTML = ink.map(x => row(x, false)).join('') + tot(ink, false);
+  lastReport = { mo, nLpo, lines: os.length, per };
+}
+function exportReport() {
+  if (!guard('export') || !lastReport) return;
+  const r = lastReport, wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ Month: r.mo, 'LPOs done': r.nLpo, 'Order lines': r.lines }]), 'Summary');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(r.per.map(x => ({ Category: x.cat, Item: x.name, 'Order lines': x.lines, Printed: +x.area.toFixed(2), Wastage: +x.waste.toFixed(2), 'Total used': +x.total.toFixed(2), 'Rolls ended': x.ended, Received: +x.rec.toFixed(2) }))), 'By item');
+  XLSX.writeFile(wb, `Monthly_Report_${r.mo}.xlsx`); logAudit('EXPORT', 'Monthly report ' + r.mo); save();
+}
 
-        function logout() {
-            currentUser = null;
-            localStorage.removeItem('tws_user_session');
-            document.getElementById('appScreen').classList.add('hidden');
-            document.getElementById('loginScreen').classList.remove('hidden');
-        }
+function submitGRN(e) {
+  e.preventDefault(); if (!guard('grn')) return;
+  const m = stock.find(x => x.id === parseInt($('gMat').value));
+  const qty = parseFloat($('gQty').value) || 0, rolls = parseInt($('gRolls').value) || 0;
+  if (!m || qty <= 0) return alert('Enter a valid quantity.');
+  m.received += qty; if (m.category === 'Media') m.rolls = (m.rolls || 0) + rolls;
+  grns.unshift({ date: now(), ymd: today(), user: me.username, item: m.name, qty, rolls });
+  logAudit('GRN', `${m.name} +${qty}${rolls ? ' (' + rolls + ' rolls)' : ''}`);
+  save(); renderAll(); closeM('mGrn'); e.target.reset();
+}
 
-        function initUI() {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('appScreen').classList.remove('hidden');
-            document.getElementById('appScreen').classList.add('flex');
+/* ---------- STOCK ADMIN ---------- */
+function editMin(id) {
+  if (!guard('editStock')) return;
+  const i = stock.find(x => x.id === id), v = parseFloat(prompt(`New minimum balance for ${i.name}:`, i.minLimit));
+  if (isNaN(v) || v < 0) return;
+  logAudit('MIN_LIMIT', `${i.name}: ${i.minLimit} → ${v}`); i.minLimit = v; save(); renderAll();
+}
+function setWaste() {
+  if (!guard('editStock')) return;
+  const v = parseFloat(prompt('Default wastage % for new orders:', wpct));
+  if (isNaN(v) || v < 0 || v > 50) return;
+  logAudit('WASTE_PCT', `${wpct}% → ${v}%`); wpct = v; save(); renderAll();
+}
+function addItem() {
+  if (!guard('editStock')) return;
+  const name = (prompt('Item name:') || '').trim(); if (!name) return;
+  const cat = confirm('Is this a MEDIA item (banner/sticker)?\nOK = Media (Sqm), Cancel = Ink/Liquid (Liters)') ? 'Media' : 'Ink';
+  const min = parseFloat(prompt('Minimum balance:', '10')) || 0, begin = parseFloat(prompt('Beginning balance:', '0')) || 0;
+  const id = Math.max(0, ...stock.map(x => x.id)) + 1;
+  stock.push(D(id, name, cat, cat === 'Media' ? 'Sqm' : 'Liters', 0, min, begin, 0, 0, 0));
+  logAudit('ITEM_ADD', name); save(); renderAll();
+}
+function delItem(id) {
+  if (!guard('editStock')) return;
+  const i = stock.find(x => x.id === id);
+  if (!confirm(`Delete "${i.name}" from the ledger? Past orders keep their name.`)) return;
+  stock = stock.filter(x => x.id !== id); logAudit('ITEM_DEL', i.name); save(); renderAll();
+}
 
-            document.getElementById('roleBadge').innerText = currentUser.role.toUpperCase();
+/* ---------- USERS ---------- */
+async function addUser(e) {
+  e.preventDefault(); if (!guard('users')) return;
+  const u = $('nU').value.trim(), p = $('nP').value, r = $('nR').value;
+  if (users.some(x => x.username.toLowerCase() === u.toLowerCase())) return alert('Username already exists!');
+  if (p.length < 6) return alert('Minimum 6 characters.');
+  users.push({ username: u, password: await sha(p), role: r });
+  logAudit('USER_ADD', `${u} (${r})`); save(); renderAll(); closeM('mUser'); e.target.reset();
+}
+function delUser(u) {
+  if (!guard('users')) return;
+  if (u === me.username || u === 'admin') return alert('This account cannot be deleted.');
+  if (!confirm(`Remove user "${u}"?`)) return;
+  users = users.filter(x => x.username !== u); logAudit('USER_DEL', u); save(); renderAll();
+}
+function changeRole(u, r) {
+  if (!guard('users') || u === 'admin') return;
+  users.find(x => x.username === u).role = r; logAudit('ROLE', `${u} → ${r}`); save(); renderAll();
+}
+async function resetPwd(u) {
+  if (!guard('users')) return;
+  const p = prompt(`New password for ${u} (min 6 chars):`);
+  if (!p || p.length < 6) return alert('Minimum 6 characters.');
+  users.find(x => x.username === u).password = await sha(p); logAudit('PWD_RESET', u); save(); alert('Password updated.');
+}
+function zeroAll() {
+  if (!guard('wipe')) return;
+  if (!confirm('ADMIN WARNING: erase all stock quantities and orders?')) return;
+  stock = stock.map(i => ({ ...i, beginning: 0, received: 0, issued: 0, wastage: 0, rolls: 0 }));
+  orders = []; grns = []; logAudit('WIPE', 'All balances zeroed'); save(); renderAll();
+}
+function resetData() {
+  if (!guard('wipe')) return;
+  if (!confirm('Restore default stock baseline?')) return;
+  stock = clone(DEFAULT_STOCK); orders = []; grns = []; logAudit('RESET', 'Defaults restored'); save(); renderAll();
+}
 
-            // Permissions
-            const isAdmin = currentUser.role === 'admin';
-            const isViewer = currentUser.role === 'viewer';
+/* ---------- EXPORT ---------- */
+function exportXlsx() {
+  if (!guard('export')) return;
+  const wb = XLSX.utils.book_new();
+  const led = stock.map(i => ({ Item: i.name, Unit: i.unit, Rolls: i.rolls, Beginning: i.beginning, Received: i.received, Issued: i.issued, Wastage: i.wastage, Balance: +bal(i).toFixed(3), Min: i.minLimit }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(led), 'Stock Ledger');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(orders.map(({ id, materialId, ...r }) => r)), 'Orders');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(grns), 'GRN');
+  if (can('audit')) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(audit), 'Audit');
+  XLSX.writeFile(wb, `Workshop_Stock_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  logAudit('EXPORT', 'Excel export'); save(); renderAll();
+}
 
-            document.getElementById('tabAdminNav').style.display = isAdmin ? 'inline-flex' : 'none';
-            document.getElementById('btnOrder').style.display = !isViewer ? 'inline-flex' : 'none';
-            document.getElementById('btnGRN').style.display = !isViewer ? 'inline-flex' : 'none';
+/* ---------- EXCEL IMPORT ---------- */
+const norm = s => String(s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const pick = (row, ...names) => { const k = Object.keys(row).find(k => names.includes(norm(k))); return k === undefined ? '' : row[k]; };
+const pad = n => String(n).padStart(2, '0');
+function fmtDate(v) {
+  if (v instanceof Date && !isNaN(v)) return `${v.getFullYear()}-${pad(v.getMonth() + 1)}-${pad(v.getDate())}`;
+  return String(v || '').trim() || new Date().toISOString().slice(0, 10);
+}
+function sheetRows(wb, name) {
+  const n = wb.SheetNames.find(s => norm(s) === name);
+  return n ? XLSX.utils.sheet_to_json(wb.Sheets[n], { defval: '', raw: true }) : [];
+}
+const findItem = name => stock.find(m => norm(m.name) === norm(name));
+const isExample = s => /^example/i.test(String(s).trim());
 
-            populateDropdowns();
-            renderAll();
-        }
+async function importExcel(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const out = $('impResult'); out.textContent = 'Reading file…';
+  try {
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+    const okGrn = [], skip = []; let dups = 0;
+    const seen = new Set([...grns, ...orders].map(x => x.ref).filter(Boolean)), cnt = {};
+    const uniq = base => { cnt[base] = (cnt[base] || 0) + 1; return base + '#' + cnt[base]; };
 
-        function switchTab(tabId) {
-            ['dashboard', 'ledger', 'orders', 'admin'].forEach(id => {
-                const el = document.getElementById('tab-' + id);
-                const btn = document.getElementById('tabBtn-' + id);
-                if (el) el.classList.add('hidden');
-                if (btn) btn.className = "py-3 text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap";
-            });
+    sheetRows(wb, 'grn').forEach((r, i) => {
+      const row = i + 2, item = String(pick(r, 'item', 'material', 'materialink')).trim(), no = String(pick(r, 'grnno', 'grn')).trim(),
+            qty = parseFloat(pick(r, 'qtysqml', 'qty', 'quantity')) || 0, rolls = parseInt(pick(r, 'rollsadded', 'rolls')) || 0, date = fmtDate(pick(r, 'date'));
+      if (!item || qty <= 0 || isExample(no) || isExample(item)) return;
+      const m = findItem(item);
+      if (!m) return skip.push(`GRN row ${row}: item "${item}" not found in stock`);
+      const ref = uniq(`G|${date}|${no}|${m.id}|${qty}`);
+      if (seen.has(ref)) return dups++;
+      okGrn.push({ m, date, no, qty, rolls, ref });
+    });
 
-            document.getElementById('tab-' + tabId).classList.remove('hidden');
-            document.getElementById('tabBtn-' + tabId).className = "py-3 text-amber-400 border-b-2 border-amber-400 flex items-center gap-2 whitespace-nowrap";
-        }
+    const sim = {}; stock.forEach(m => sim[m.id] = bal(m)); okGrn.forEach(g => sim[g.m.id] += g.qty);
 
-        function populateDropdowns() {
-            const html = stockData.map(i => `<option value="${i.id}">${i.name} (${i.unit})</option>`).join('');
-            document.getElementById('orderMaterial').innerHTML = html;
-            document.getElementById('grnMaterial').innerHTML = html;
-        }
+    const groups = {};   // one LPO = all rows with the same LPO no + date
+    sheetRows(wb, 'orders').forEach((r, i) => {
+      const row = i + 2, both = String(pick(r, 'clientlpono')).trim();
+      const lpo = String(pick(r, 'lpono', 'lpo', 'lponumber') || both).trim(), client = String(pick(r, 'client', 'customer', 'clientname') || both).trim();
+      const mat = String(pick(r, 'materialink', 'material', 'item', 'ink')).trim(), status = String(pick(r, 'status')).trim().toLowerCase(), date = fmtDate(pick(r, 'date'));
+      if (!mat || !lpo || status === 'void' || isExample(lpo) || isExample(client)) return;
+      const m = findItem(mat);
+      if (!m) return skip.push(`Order row ${row} (${lpo}): material "${mat}" not found in stock`);
+      const w = parseFloat(pick(r, 'widthm', 'width')) || 0, h = parseFloat(pick(r, 'heightm', 'height')) || 0, pcs = parseInt(pick(r, 'pcs', 'qty', 'quantity')) || 1;
+      const area = (w > 0 && h > 0) ? w * h * pcs : (parseFloat(pick(r, 'manualqtyl', 'manualqty')) || parseFloat(pick(r, 'printedareaqty', 'printedarea', 'arealiters')) || 0);
+      if (area <= 0) return skip.push(`Order row ${row} (${lpo}): no area or quantity`);
+      const ref = uniq(`O|${date}|${lpo}|${m.id}|${area.toFixed(3)}`);
+      if (seen.has(ref)) return dups++;
+      const k = lpo + '|' + date; (groups[k] = groups[k] || { lpo, client, date, lines: [] }).lines.push({ m, w, h, pcs, area, waste: wasteFor(m, w, h, pcs, area), ref });
+    });
 
-        // Auto LPO Area & Off-Cut Wastage Calculation
-        function calculateOrderTotals() {
-            const w = parseFloat(document.getElementById('calcWidth').value) || 0;
-            const h = parseFloat(document.getElementById('calcHeight').value) || 0;
-            const qty = parseInt(document.getElementById('calcQty').value) || 1;
+    const okLpo = [];
+    Object.values(groups).forEach(g => {
+      const need = {}; g.lines.forEach(l => need[l.m.id] = (need[l.m.id] || 0) + l.area + l.waste);
+      const bad = Object.keys(need).find(id => need[id] > sim[id] + 1e-9);
+      if (bad) return skip.push(`LPO ${g.lpo}: insufficient ${stock.find(x => x.id == bad).name} (available ${sim[bad].toFixed(2)})`);
+      Object.keys(need).forEach(id => sim[id] -= need[id]); okLpo.push(g);
+    });
+    const nLines = okLpo.reduce((t, g) => t + g.lines.length, 0);
 
-            if (w > 0 && h > 0) {
-                const printedArea = (w * h * qty);
-                document.getElementById('orderQty').value = printedArea.toFixed(2);
-                document.getElementById('orderWastage').value = (printedArea * 0.08).toFixed(2);
-            }
-        }
+    let msg = `Found: ${okGrn.length} new GRN, ${okLpo.length} new LPO (${nLines} lines). Duplicates skipped: ${dups}. Problems: ${skip.length}.`;
+    if (skip.length) msg += '\n\n' + skip.join('\n');
+    if (!okGrn.length && !okLpo.length) { out.textContent = msg + '\n\nNothing to import.'; return; }
+    if (okGrn.length && !can('grn')) { out.textContent = 'Access denied: your role cannot record GRN.'; return; }
+    if (okLpo.length && !can('order')) { out.textContent = 'Access denied: your role cannot post orders.'; return; }
+    if (!confirm(`Import ${okGrn.length} GRN and ${okLpo.length} LPO (${nLines} lines) now?`)) { out.textContent = msg + '\n\nCancelled.'; return; }
 
-        function renderAll() {
-            let totRolls = 0, totMedia = 0, totInk = 0, redFlags = 0;
-            let rollsHtml = '', ledgerHtml = '';
+    okGrn.forEach(g => {
+      g.m.received += g.qty; if (g.m.category === 'Media') g.m.rolls = (g.m.rolls || 0) + g.rolls;
+      grns.unshift({ date: g.date, ymd: g.date, user: me.username, item: g.m.name, qty: g.qty, rolls: g.rolls, ref: g.ref });
+    });
+    const roll = [];
+    okLpo.forEach(g => { const r = postLpo(g.lpo, g.client, g.date, g.lines); if (r.error) skip.push(`LPO ${g.lpo}: ${r.error}`); else roll.push(...r.msgs); });
+    logAudit('IMPORT', `${file.name}: ${okGrn.length} GRN, ${okLpo.length} LPO`);
+    save(); renderAll();
+    out.textContent = '✔ Imported.\n' + msg + (roll.length ? '\n\n' + roll.join('\n') : '');
+  } catch (err) { out.textContent = 'Could not read file: ' + err.message; }
+  e.target.value = '';
+}
 
-            stockData.forEach(item => {
-                const bal = item.beginning + item.received - item.issued - item.wastage;
+function downloadTemplate() {
+  const wb = XLSX.utils.book_new(), a = stock[0] ? stock[0].name : '', b = stock[7] ? stock[7].name : a;
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([
+    { 'Date': '2026-10-13', 'LPO No': 'EXAMPLE-LPO-1', 'Client': 'Example Client', 'Material / Ink': a, 'Width (m)': 3, 'Height (m)': 5, 'Pcs': 1, 'Manual Qty (L)': '', 'Status': 'Active' },
+    { 'Date': '2026-10-13', 'LPO No': 'EXAMPLE-LPO-1', 'Client': 'Example Client', 'Material / Ink': b, 'Width (m)': '', 'Height (m)': '', 'Pcs': '', 'Manual Qty (L)': 0.5, 'Status': 'Active' }]), 'Orders');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ 'Date': '2026-10-13', 'GRN No': 'EXAMPLE-001', 'Item': a, 'Rolls Added': 1, 'Qty (Sqm / L)': 100 }]), 'GRN');
+  XLSX.writeFile(wb, 'Import_Template.xlsx');
+}
 
-                if (item.category === 'Media') {
-                    totRolls += (item.rolls || 0);
-                    totMedia += bal;
-                } else {
-                    totInk += bal;
-                }
-
-                const isLow = bal <= item.minLimit;
-                if (isLow) redFlags++;
-
-                const status = bal <= 0 
-                    ? `<span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded text-[10px] font-bold">0.0 EMPTY</span>` 
-                    : (isLow 
-                        ? `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-bold">⚠️ LOW STOCK</span>` 
-                        : `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-semibold">HEALTHY</span>`);
-
-                if (item.category === 'Media') {
-                    rollsHtml += `
-                        <tr class="hover:bg-slate-800/40">
-                            <td class="p-3 font-semibold text-white">${item.name}</td>
-                            <td class="p-3 text-center font-bold text-amber-400">${item.rolls || 0} Rolls</td>
-                            <td class="p-3 text-right text-slate-400">${item.minLimit} Sqm</td>
-                            <td class="p-3 text-right font-bold ${isLow ? 'text-rose-400':'text-white'}">${bal.toFixed(2)} Sqm</td>
-                            <td class="p-3 text-center">${status}</td>
-                        </tr>
-                    `;
-                }
-
-                ledgerHtml += `
-                    <tr class="hover:bg-slate-800/40">
-                        <td class="p-3 font-semibold text-white">${item.name}</td>
-                        <td class="p-3 text-center text-xs text-slate-400">${item.unit}</td>
-                        <td class="p-3 text-center font-bold text-amber-400">${item.rolls > 0 ? item.rolls + ' Rolls' : '-'}</td>
-                        <td class="p-3 text-right text-slate-400">${item.beginning.toFixed(2)}</td>
-                        <td class="p-3 text-right text-emerald-400">+${item.received.toFixed(2)}</td>
-                        <td class="p-3 text-right text-blue-400">-${item.issued.toFixed(2)}</td>
-                        <td class="p-3 text-right text-rose-400">-${item.wastage.toFixed(2)}</td>
-                        <td class="p-3 text-right font-bold text-white">${bal.toFixed(2)}</td>
-                        <td class="p-3 text-center">${status}</td>
-                    </tr>
-                `;
-            });
-
-            document.getElementById('rollsTableBody').innerHTML = rollsHtml;
-            document.getElementById('fullLedgerBody').innerHTML = ledgerHtml;
-
-            document.getElementById('statRolls').innerText = totRolls + " Rolls";
-            document.getElementById('statMedia').innerText = totMedia.toFixed(2) + " Sqm";
-            document.getElementById('statInk').innerText = totInk.toFixed(1) + " L";
-            document.getElementById('statRedFlags').innerText = redFlags;
-
-            // Render Orders
-            document.getElementById('ordersTableBody').innerHTML = ordersData.length ? ordersData.map(o => `
-                <tr class="hover:bg-slate-800/40">
-                    <td class="p-3 font-semibold text-white">${o.client}</td>
-                    <td class="p-3 text-slate-300">${o.materialName}</td>
-                    <td class="p-3 text-right text-blue-400">${o.qty.toFixed(2)}</td>
-                    <td class="p-3 text-right text-rose-400">${o.wastage.toFixed(2)}</td>
-                    <td class="p-3 text-right font-bold text-amber-400">${(o.qty + o.wastage).toFixed(2)}</td>
-                </tr>
-            `).join('') : `<tr><td colspan="5" class="p-4 text-center text-xs text-slate-500">No orders logged yet.</td></tr>`;
-
-            // Render Admin User Table
-            document.getElementById('usersTableBody').innerHTML = usersData.map(u => `
-                <tr class="hover:bg-slate-800/40">
-                    <td class="p-3 font-mono text-white">${u.username}</td>
-                    <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-slate-800 text-amber-400">${u.role}</span></td>
-                    <td class="p-3 text-right">
-                        ${u.username !== 'admin' ? `<button onclick="deleteUser('${u.username}')" class="text-xs text-rose-400 hover:underline"><i class="fa-solid fa-trash me-1"></i> Delete</button>` : `<span class="text-xs text-slate-600">System Admin</span>`}
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        // Submit New Order
-        function submitOrder(e) {
-            e.preventDefault();
-            const id = parseInt(document.getElementById('orderMaterial').value);
-            const client = document.getElementById('orderClient').value.trim();
-            const qty = parseFloat(document.getElementById('orderQty').value) || 0;
-            const wastage = parseFloat(document.getElementById('orderWastage').value) || 0;
-
-            const mat = stockData.find(m => m.id === id);
-            if (mat) {
-                mat.issued += qty;
-                mat.wastage += wastage;
-                ordersData.unshift({ client, materialName: mat.name, qty, wastage });
-                saveState();
-                renderAll();
-                closeModal('orderModal');
-                e.target.reset();
-            }
-        }
-
-        // Submit GRN
-        function submitGRN(e) {
-            e.preventDefault();
-            const id = parseInt(document.getElementById('grnMaterial').value);
-            const newRolls = parseInt(document.getElementById('grnRolls').value) || 0;
-            const qty = parseFloat(document.getElementById('grnQty').value) || 0;
-
-            const mat = stockData.find(m => m.id === id);
-            if (mat) {
-                mat.received += qty;
-                if (mat.rolls !== undefined) mat.rolls += newRolls;
-                saveState();
-                renderAll();
-                closeModal('grnModal');
-                e.target.reset();
-            }
-        }
-
-        // ADMIN USER CONTROL FUNCTIONS
-        function submitNewUser(e) {
-            e.preventDefault();
-            const username = document.getElementById('newUsername').value.trim();
-            const password = document.getElementById('newPassword').value.trim();
-            const role = document.getElementById('newRole').value;
-
-            if (usersData.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-                return alert('Username already exists!');
-            }
-
-            usersData.push({ username, password, role });
-            saveState();
-            renderAll();
-            closeModal('addUserModal');
-            e.target.reset();
-        }
-
-        function deleteUser(u) {
-            if (confirm(`Remove user account "${u}"?`)) {
-                usersData = usersData.filter(x => x.username !== u);
-                saveState();
-                renderAll();
-            }
-        }
-
-        function clearAllToZero() {
-            if (confirm("ADMIN WARNING: Erase all filled stock quantities and start fresh at 0.0?")) {
-                stockData = stockData.map(item => ({ ...item, beginning: 0, received: 0, issued: 0, wastage: 0, rolls: 0 }));
-                ordersData = [];
-                saveState();
-                renderAll();
-            }
-        }
-
-        function resetData() {
-            if (confirm("Restore default stock baseline report?")) {
-                stockData = defaultStock;
-                ordersData = [];
-                saveState();
-                renderAll();
-            }
-        }
-
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
-
-        window.onload = function() {
-            if (currentUser) initUI();
-        };
-    </script>
+window.onload = boot;
+</script>
 </body>
 </html>
